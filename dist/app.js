@@ -212,10 +212,18 @@
       value: state.feeWei
     };
     message(form, 'Estimating the GenLayer network fee…');
-    var estimate = await state.client.estimateTransactionFeesForWrite(write);
-    setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
-    message(form, 'Waiting for wallet signature…');
-    var txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
+    var txId;
+    try {
+      var estimate = await state.client.estimateTransactionFeesForWrite(write);
+      setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
+      message(form, 'Waiting for wallet signature…');
+      txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
+    } catch (feeError) {
+      console.warn('Fee estimation failed, proceeding without explicit fee:', feeError);
+      setText('[data-network-fee]', 'Network fee applied by GenLayer', form);
+      message(form, 'Waiting for wallet signature…');
+      txId = await state.client.writeContract(write);
+    }
     setText('[data-tx-id]', txId, form);
     message(form, 'Transaction submitted. Waiting for GenLayer finalization…');
     var receipt = await state.client.waitForFinalization({ hash: txId });
@@ -279,9 +287,16 @@
       value: state.feeWei
     };
     message(form, 'Estimating the network fee…');
-    var estimate = await state.client.estimateTransactionFeesForWrite(write);
-    setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
-    var txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
+    var txId;
+    try {
+      var estimate = await state.client.estimateTransactionFeesForWrite(write);
+      setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
+      txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
+    } catch (feeError) {
+      console.warn('Fee estimation failed, proceeding without explicit fee:', feeError);
+      setText('[data-network-fee]', 'Network fee applied by GenLayer', form);
+      txId = await state.client.writeContract(write);
+    }
     setText('[data-tx-id]', txId, form);
     message(form, 'Rebuttal submitted. Waiting for finalization…');
     var receipt = await state.client.waitForFinalization({ hash: txId });
