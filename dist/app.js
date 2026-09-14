@@ -25,13 +25,21 @@
     return state;
   }
 
-  async function connectWallet() {
+  async function connectWallet(walletType) {
     try {
       await loadSdk();
-      if (!window.ethereum) throw new Error('MetaMask not found. Please install MetaMask extension.');
+
+      // Check for wallet availability
+      if (!window.ethereum) {
+        throw new Error('No EVM wallet found. Please install MetaMask, Coinbase Wallet, or another EIP-1193 wallet.');
+      }
+
+      console.log('Detected wallet:', window.ethereum.isMetaMask ? 'MetaMask' : window.ethereum.isCoinbaseWallet ? 'Coinbase' : 'Other EVM wallet');
 
       var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (!accounts || !accounts[0]) throw new Error('No wallet account was returned. Please check MetaMask.');
+      if (!accounts || !accounts[0]) {
+        throw new Error('No account selected. Please approve the connection in your wallet.');
+      }
       state.account = accounts[0];
       console.log('Connected account:', state.account);
 
@@ -398,18 +406,36 @@
     });
   }
 
-  if (connectMetamaskBtn) {
-    connectMetamaskBtn.addEventListener('click', async function() {
-      try {
-        hideWalletModal();
-        await connectWallet();
-        window.location.href = '/submit/';
-      } catch (error) {
-        console.error('Connection failed:', error);
-        showWalletModal();
-      }
-    });
+  // Wallet connection handlers
+  function setupWalletButton(buttonId, walletType) {
+    var btn = document.getElementById(buttonId);
+    if (btn) {
+      btn.addEventListener('click', async function() {
+        try {
+          hideWalletModal();
+
+          if (walletType === 'walletconnect') {
+            // WalletConnect support - show message for now
+            alert('WalletConnect support coming soon! Please use MetaMask or another web3 wallet.');
+            showWalletModal();
+            return;
+          }
+
+          await connectWallet();
+          window.location.href = '/submit/';
+        } catch (error) {
+          console.error('Connection failed:', error);
+          alert('Failed to connect: ' + error.message);
+          showWalletModal();
+        }
+      });
+    }
   }
+
+  setupWalletButton('connect-metamask', 'metamask');
+  setupWalletButton('connect-walletconnect', 'walletconnect');
+  setupWalletButton('connect-coinbase', 'coinbase');
+  setupWalletButton('connect-other', 'other');
 
   // Handle "Start Check" button on homepage
   var startCheckBtn = document.getElementById('start-check-btn');

@@ -335,20 +335,37 @@
           <p>Select your wallet to get started</p>
         </div>
         <div class="wallet-options">
-          <button class="wallet-option" id="connect-metamask">
+          <button class="wallet-option" id="connect-metamask" data-wallet="metamask">
             <div class="wallet-option-icon">🦊</div>
             <div class="wallet-option-info" style="flex: 1; text-align: left;">
               <h3>MetaMask</h3>
-              <p>Connect to your MetaMask wallet</p>
+              <p>Desktop & mobile app</p>
             </div>
             <span style="color: var(--lime);">→</span>
           </button>
-          <button class="wallet-option" disabled style="opacity: 0.5;">
+          <button class="wallet-option" id="connect-walletconnect" data-wallet="walletconnect">
+            <div class="wallet-option-icon">🔗</div>
+            <div class="wallet-option-info" style="flex: 1; text-align: left;">
+              <h3>WalletConnect</h3>
+              <p>Trust, Rainbow, Coinbase & more</p>
+            </div>
+            <span style="color: var(--lime);">→</span>
+          </button>
+          <button class="wallet-option" id="connect-coinbase" data-wallet="coinbase">
+            <div class="wallet-option-icon">₿</div>
+            <div class="wallet-option-info" style="flex: 1; text-align: left;">
+              <h3>Coinbase Wallet</h3>
+              <p>Coinbase browser extension</p>
+            </div>
+            <span style="color: var(--lime);">→</span>
+          </button>
+          <button class="wallet-option" id="connect-other" data-wallet="other">
             <div class="wallet-option-icon">👛</div>
             <div class="wallet-option-info" style="flex: 1; text-align: left;">
-              <h3>More Wallets Coming</h3>
-              <p>WalletConnect & others (soon)</p>
+              <h3>Other EIP-1193</h3>
+              <p>Any EVM-compatible wallet</p>
             </div>
+            <span style="color: var(--lime);">→</span>
           </button>
         </div>
         <div class="wallet-modal-footer">
