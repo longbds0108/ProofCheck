@@ -1,3 +1,6 @@
+# v0.2.16
+# { "Depends": "py-genlayer:1jb45aa8aynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+
 """ProofCheck verifier for GitHub open-source claims.
 
 The contract stores an append-only audit trail. A claim can have many reviews;
@@ -493,59 +496,19 @@ claim. Use insufficient for missing, inaccessible, or ambiguous evidence.
         }
 
     @gl.public.view
-    def get_reviews(self, claim_id: str) -> typing.List[typing.Dict[str, str]]:
-        result = []
-        for review_record in self.reviews:
-            if review_record.claim_id == claim_id:
-                result.append(
-                    {
-                        "review_id": review_record.review_id,
-                        "claim_id": review_record.claim_id,
-                        "version": str(review_record.version),
-                        "status": review_record.status,
-                        "reason": review_record.reason,
-                        "evidence_excerpt": review_record.evidence_excerpt,
-                        "created_at": review_record.created_at,
-                        "review_kind": review_record.review_kind,
-                        "finalized": str(review_record.finalized),
-                    }
-                )
-        return result
+    def get_reviews(self, claim_id: str) -> DynArray[Review]:
+        # Return the append-only collection; clients filter by claim_id.
+        return self.reviews
 
     @gl.public.view
-    def get_evidence(self, claim_id: str) -> typing.List[typing.Dict[str, str]]:
-        result = []
-        for evidence_record in self.evidence:
-            if evidence_record.claim_id == claim_id:
-                result.append(
-                    {
-                        "evidence_id": evidence_record.evidence_id,
-                        "review_id": evidence_record.review_id,
-                        "url": evidence_record.url,
-                        "excerpt": evidence_record.excerpt,
-                        "content_hash": evidence_record.content_hash,
-                        "captured_at": evidence_record.captured_at,
-                        "relation": evidence_record.relation,
-                    }
-                )
-        return result
+    def get_evidence(self, claim_id: str) -> DynArray[Evidence]:
+        # Return the append-only collection; clients filter by claim_id.
+        return self.evidence
 
     @gl.public.view
-    def get_rewards(self, claim_id: str) -> typing.List[typing.Dict[str, str]]:
-        result = []
-        for reward_record in self.rewards:
-            if reward_record.claim_id == claim_id:
-                result.append(
-                    {
-                        "reward_id": reward_record.reward_id,
-                        "review_id": reward_record.review_id,
-                        "recipient": reward_record.recipient,
-                        "amount_wei": str(reward_record.amount_wei),
-                        "created_at": reward_record.created_at,
-                        "status": reward_record.status,
-                    }
-                )
-        return result
+    def get_rewards(self, claim_id: str) -> DynArray[Reward]:
+        # Return the append-only collection; clients filter by claim_id.
+        return self.rewards
 
     @gl.public.write
     def release_source_reward(self, reward_id: str) -> None:

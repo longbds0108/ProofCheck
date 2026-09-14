@@ -12,12 +12,26 @@
 
 Every new review appends to the arrays. A rebuttal never deletes an earlier result.
 
+The file starts with the GenVM runner version and the pinned `py-genlayer`
+dependency comment required by GenLayer Studio.
+
 ## Payment model
 
 - `verification_fee` starts at **1 GEN** and is configurable by the owner.
 - The submitter sends `verification_fee + reward_amount` as the payable method `value`.
 - GenLayer network fees are separate and must be supplied through the GenLayerJS `fees` object.
 - Optional source rewards are escrowed as `queued`; the owner calls `release_source_reward` or `refund_source_reward` after review.
+
+## Checks
+
+Run the local structural checks with:
+
+```bash
+python3 -m unittest contracts.test_contract_structure
+```
+
+The GenLayer VM checks should additionally be run with `genvm-lint` and
+`gltest` in a GenLayer SDK environment.
 - The owner can withdraw accumulated treasury funds to `treasury_address`.
 - `pause` is available to the owner or emergency guardian. Ownership uses a two-step transfer (`transfer_ownership` / `accept_ownership`). A production treasury/owner should be a multisig address.
 

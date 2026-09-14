@@ -151,8 +151,8 @@
     try {
       var claimId = new URLSearchParams(window.location.search).get('claim') || document.body.dataset.claimId;
       var claim = await readContract('get_claim', [claimId]);
-      var reviews = await readContract('get_reviews', [claimId]);
-      var evidence = await readContract('get_evidence', [claimId]);
+      var reviews = (await readContract('get_reviews', [claimId]) || []).filter(function (item) { return item.claim_id === claimId; });
+      var evidence = (await readContract('get_evidence', [claimId]) || []).filter(function (item) { return item.claim_id === claimId; });
       if (!claim || !claim.claim_id) throw new Error('Claim not found');
       document.body.dataset.claimId = claim.claim_id;
       setText('.detail-head h1', claim.claim_text);
