@@ -48,12 +48,12 @@
       var currentChainId = parseInt(chainIdHex, 16);
       console.log('Current chain ID:', currentChainId);
 
-      // Check if on correct network (61997 = GenLayer Studio Next)
-      var GENLayer_CHAIN_ID = 61997;
-      if (currentChainId !== GENLayer_CHAIN_ID) {
+      // Check if on correct network (61997 or 61999 = GenLayer networks)
+      var VALID_CHAIN_IDS = [61997, 61999]; // Studio Next and other GenLayer networks
+      if (!VALID_CHAIN_IDS.includes(currentChainId)) {
         state.wrongNetwork = true;
-        console.warn('Wrong network. Current:', currentChainId, 'Expected:', GENLayer_CHAIN_ID);
-        throw new Error('Please switch to GenLayer Studio Next network (Chain ID: ' + GENLayer_CHAIN_ID + '). Current: ' + currentChainId);
+        console.warn('Wrong network. Current:', currentChainId, 'Expected one of:', VALID_CHAIN_IDS);
+        throw new Error('Please switch to GenLayer network (Chain ID: 61997 or 61999). Current: ' + currentChainId);
       }
 
       state.wrongNetwork = false;
