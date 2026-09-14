@@ -1,0 +1,53 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c8ff4d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9ce9d2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="125" fill="none" stroke="url(#grad1)" stroke-width="2" opacity="0.2"/>
+
+  <!-- Main geometric seal/badge -->
+  <g filter="url(#shadow)">
+    <!-- Outer octagon -->
+    <polygon points="128,28 188,58 218,118 188,178 128,208 68,178 38,118 68,58"
+             fill="none" stroke="url(#grad1)" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- Inner circle with checkmark -->
+    <circle cx="128" cy="128" r="65" fill="#061412" stroke="url(#grad1)" stroke-width="2"/>
+
+    <!-- Checkmark -->
+    <g transform="translate(128, 128)">
+      <!-- Left stroke of checkmark -->
+      <line x1="-20" y1="0" x2="-5" y2="15" stroke="#c8ff4d" stroke-width="5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Right stroke of checkmark -->
+      <line x1="-5" y1="15" x2="20" y2="-15" stroke="#9ce9d2" stroke-width="5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- Decorative nodes (blockchain/network representation) -->
+  <g opacity="0.7">
+    <!-- Top node -->
+    <circle cx="128" cy="45" r="5" fill="#c8ff4d"/>
+    <line x1="128" y1="50" x2="128" y2="70" stroke="#c8ff4d" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Bottom right node -->
+    <circle cx="188" cy="165" r="5" fill="#9ce9d2"/>
+    <line x1="175" y1="155" x2="188" y2="165" stroke="#9ce9d2" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Bottom left node -->
+    <circle cx="68" cy="165" r="5" fill="#c8ff4d"/>
+    <line x1="81" y1="155" x2="68" y2="165" stroke="#c8ff4d" stroke-width="1.5" opacity="0.4"/>
+  </g>
+
+  <!-- Brand text (optional, can be removed for icon-only use) -->
+  <text x="128" y="235" font-family="Space Grotesk, sans-serif" font-size="18" font-weight="700"
+        text-anchor="middle" fill="#c8ff4d" letter-spacing="-0.5">PROOFCHECK</text>
+</svg>
