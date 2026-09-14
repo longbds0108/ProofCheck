@@ -379,6 +379,7 @@
   // Wallet Button & Menu
   var walletMenu = document.getElementById('wallet-menu');
   var walletButton = document.getElementById('wallet-button');
+  var walletDropdown = document.getElementById('wallet-dropdown');
   var walletAddress = document.getElementById('wallet-address');
   var walletAddressCopy = document.getElementById('wallet-address-copy');
   var copyAddressBtn = document.getElementById('copy-address');
@@ -388,14 +389,14 @@
   if (walletButton) {
     walletButton.addEventListener('click', function(e) {
       e.stopPropagation();
-      walletMenu.classList.toggle('active');
+      if (walletDropdown) walletDropdown.classList.toggle('active');
     });
   }
 
   // Close menu when clicking outside
   document.addEventListener('click', function() {
-    if (walletMenu && walletMenu.classList.contains('active')) {
-      walletMenu.classList.remove('active');
+    if (walletDropdown && walletDropdown.classList.contains('active')) {
+      walletDropdown.classList.remove('active');
     }
   });
 
@@ -406,10 +407,11 @@
       var addressToCopy = state.account || walletAddressCopy.textContent;
       navigator.clipboard.writeText(addressToCopy).then(function() {
         var originalText = copyAddressBtn.textContent;
-        copyAddressBtn.textContent = '✓ Copied!';
+        copyAddressBtn.textContent = '✓ Copied';
+        if (walletDropdown) walletDropdown.classList.remove('active');
         setTimeout(function() {
           copyAddressBtn.innerHTML = '<span id="wallet-address-copy">' + addressToCopy + '</span>';
-        }, 2000);
+        }, 1500);
       });
     });
   }
@@ -422,6 +424,7 @@
       state.client = null;
       state.readClient = null;
       if (walletMenu) walletMenu.style.display = 'none';
+      if (walletDropdown) walletDropdown.classList.remove('active');
       if (document.getElementById('start-check-btn')) {
         document.getElementById('start-check-btn').style.display = 'inline-flex';
       }
