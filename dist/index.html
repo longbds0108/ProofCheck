@@ -230,21 +230,27 @@
         .workflow { grid-template-columns: 1fr; gap: 42px; }
         .intake { grid-template-columns: 1fr; gap: 30px; padding: 30px 24px; }
       }
-      .wallet-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(7, 13, 11, 0.85); backdrop-filter: blur(4px); animation: fadeIn .2s ease; }
-      .wallet-modal.active { display: flex; align-items: center; justify-content: center; }
-      .wallet-modal-content { background: var(--bg-deep); border: 1px solid var(--line); border-radius: 16px; padding: 30px; max-width: 420px; width: 90%; animation: slideUp .3s ease; }
-      .wallet-modal-header { text-align: center; margin-bottom: 30px; }
-      .wallet-modal-header h2 { font: 600 24px "Space Grotesk", sans-serif; margin: 0 0 8px; }
-      .wallet-modal-header p { color: var(--muted); margin: 0; }
-      .wallet-options { display: grid; gap: 12px; }
-      .wallet-option { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: transparent; cursor: pointer; transition: all .2s ease; }
-      .wallet-option:hover { border-color: var(--lime); background: rgba(200,255,77,.05); }
-      .wallet-option-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-      .wallet-option-info h3 { font: 600 14px "Space Grotesk", sans-serif; margin: 0; color: var(--ink); }
-      .wallet-option-info p { font: 11px "DM Mono", monospace; color: var(--muted); margin: 4px 0 0; }
-      .wallet-modal-footer { margin-top: 20px; text-align: center; color: var(--muted); font-size: 12px; }
-      .wallet-modal-close { position: absolute; top: 20px; right: 20px; background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all .2s; }
-      .wallet-modal-close:hover { color: var(--lime); border-color: var(--lime); }
+      .wallet-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(7, 13, 11, 0.9); backdrop-filter: blur(10px); animation: fadeIn .2s ease; }
+      .wallet-modal.active { display: flex; align-items: center; justify-content: center; padding: 20px; }
+      .wallet-modal-content { background: linear-gradient(135deg, var(--bg-deep) 0%, rgba(25, 58, 43, .5) 100%); border: 1px solid rgba(200,255,77,.2); border-radius: 24px; padding: 40px 32px; max-width: 480px; width: 100%; animation: slideUp .3s ease; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+      .wallet-modal-header { text-align: center; margin-bottom: 40px; }
+      .wallet-modal-header h2 { font: 700 28px "Space Grotesk", sans-serif; margin: 0 0 12px; letter-spacing: -.02em; }
+      .wallet-modal-header p { color: #a1ada6; margin: 0; font-size: 14px; }
+      .wallet-options { display: grid; gap: 10px; }
+      .wallet-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid rgba(200,255,77,.15); border-radius: 14px; background: rgba(25, 58, 43, .3); cursor: pointer; transition: all .25s cubic-bezier(.4, 0, .2, 1); position: relative; overflow: hidden; }
+      .wallet-option::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 0%, rgba(200,255,77,.1) 100%); opacity: 0; transition: opacity .25s; }
+      .wallet-option:hover { background: rgba(25, 58, 43, .6); border-color: rgba(200,255,77,.35); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+      .wallet-option:hover::before { opacity: 1; }
+      .wallet-option-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(200,255,77,.08); border: 1px solid rgba(200,255,77,.15); flex-shrink: 0; z-index: 1; }
+      .wallet-option-info { flex: 1; z-index: 1; }
+      .wallet-option-info h3 { font: 600 15px "Space Grotesk", sans-serif; margin: 0 0 3px; color: var(--ink); letter-spacing: -.01em; }
+      .wallet-option-info p { font: 12px "DM Mono", monospace; color: #8a9a8f; margin: 0; }
+      .wallet-option span { color: var(--lime); font-weight: 700; z-index: 1; }
+      .wallet-modal-footer { margin-top: 28px; text-align: center; color: #789187; font-size: 12px; }
+      .wallet-modal-footer a { color: var(--lime); text-decoration: none; transition: opacity .2s; }
+      .wallet-modal-footer a:hover { opacity: .8; }
+      .wallet-modal-close { position: absolute; top: 20px; right: 20px; background: rgba(200,255,77,.08); border: 1px solid rgba(200,255,77,.2); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #a1ada6; transition: all .2s; font-size: 20px; font-weight: 700; }
+      .wallet-modal-close:hover { color: var(--lime); border-color: var(--lime); background: rgba(200,255,77,.12); }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -356,7 +362,7 @@
         <button class="wallet-modal-close" id="wallet-modal-close">✕</button>
         <div class="wallet-modal-header">
           <h2>Connect Wallet</h2>
-          <p>Select your wallet to get started</p>
+          <p>Choose your preferred wallet to start verifying claims</p>
         </div>
         <div class="wallet-options">
           <button class="wallet-option" data-wallet="metamask">
@@ -425,7 +431,7 @@
           </button>
         </div>
         <div class="wallet-modal-footer">
-          Don't have a wallet? <a href="https://metamask.io/" target="_blank" rel="noreferrer" style="color: var(--lime); text-decoration: underline;">Install MetaMask</a>
+          New to Web3? <a href="https://metamask.io/" target="_blank" rel="noreferrer">Get MetaMask →</a>
         </div>
       </div>
     </div>
