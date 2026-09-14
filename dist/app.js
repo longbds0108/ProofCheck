@@ -26,21 +26,37 @@
   }
 
   async function connectWallet() {
-    await loadSdk();
-    var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    if (!accounts || !accounts[0]) throw new Error('No wallet account was returned.');
-    state.account = accounts[0];
-    state.client = state.sdk.createClient({ chain: state.chains.studionet, account: state.account, provider: window.ethereum });
-    if (state.client.connect) await state.client.connect('studionet');
-    $$('[data-wallet-connect]').forEach(function (button) { button.textContent = shortAddress(state.account); button.classList.add('is-connected'); });
-    await refreshPaymentPolicy();
-    return state.account;
+    try {
+      await loadSdk();
+      var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || !accounts[0]) throw new Error('No wallet account was returned.');
+      state.account = accounts[0];
+      var chainName = config.network === 'studio-next' ? 'studio_next' : 'studionet';
+      var chain = state.chains[chainName] || state.chains.studio_next || state.chains.studionet;
+      state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
+      if (state.client.connect) await state.client.connect(chainName);
+      $$('[data-wallet-connect]').forEach(function (button) { button.textContent = shortAddress(state.account); button.classList.add('is-connected'); });
+      await refreshPaymentPolicy();
+      return state.account;
+    } catch (error) {
+      console.error('Wallet connection failed:', error);
+      throw error;
+    }
   }
 
   async function getReadClient() {
-    await loadSdk();
-    if (!state.readClient) state.readClient = state.sdk.createClient({ chain: state.chains.studionet });
-    return state.readClient;
+    try {
+      await loadSdk();
+      if (!state.readClient) {
+        var chainName = config.network === 'studio-next' ? 'studio_next' : 'studionet';
+        var chain = state.chains[chainName] || state.chains.studio_next || state.chains.studionet;
+        state.readClient = state.sdk.createClient({ chain: chain });
+      }
+      return state.readClient;
+    } catch (error) {
+      console.error('Failed to create read client:', error);
+      throw error;
+    }
   }
 
   async function readContract(functionName, args) {
@@ -57,16 +73,24 @@
 
   async function refreshPaymentPolicy() {
     var policy = null;
-    try { policy = await readContract('get_payment_policy', []); } catch (error) {
-      setText('[data-chain-status]', config.contractAddress ? 'Contract read unavailable' : 'Awaiting Studionet contract');
+    try {
+      policy = await readContract('get_payment_policy', []);
+    } catch (error) {
+      console.warn('Payment policy load failed:', error);
+      setText('[data-chain-status]', config.contractAddress ? 'Contract read unavailable' : 'Awaiting Studio Next contract');
       renderTreasury(config.treasuryAddress);
       return null;
     }
-    state.feeWei = BigInt(policy.verification_fee_wei || 0);
-    renderTreasury(policy.treasury_address || config.treasuryAddress);
-    $$('[data-verification-fee]').forEach(function (el) { el.textContent = weiToGen(state.feeWei) + ' GEN'; });
-    $$('[data-contract-status]').forEach(function (el) { el.textContent = policy.paused === 'True' ? 'Paused for maintenance' : 'Studionet contract live'; });
-    updatePaymentTotal();
+    try {
+      state.feeWei = BigInt(policy.verification_fee_wei || 0);
+      renderTreasury(policy.treasury_address || config.treasuryAddress);
+      $$('[data-verification-fee]').forEach(function (el) { el.textContent = weiToGen(state.feeWei) + ' GEN'; });
+      var isPaused = String(policy.paused).toLowerCase() === 'true';
+      $$('[data-contract-status]').forEach(function (el) { el.textContent = isPaused ? 'Paused for maintenance' : 'Studio Next contract live'; });
+      updatePaymentTotal();
+    } catch (error) {
+      console.warn('Payment policy parse failed:', error);
+    }
     return policy;
   }
 
@@ -140,13 +164,17 @@
     var excerpts = [];
     for (var i = 0; i < urls.length; i += 1) {
       try {
-        var response = await fetch(urls[i], { credentials: 'omit' });
+        var controller = new AbortController();
+        var timeout = setTimeout(function () { controller.abort(); }, 10000);
+        var response = await fetch(urls[i], { credentials: 'omit', signal: controller.signal });
+        clearTimeout(timeout);
         if (!response.ok) throw new Error('HTTP ' + response.status);
         var body = await response.text();
         var bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
         hashes.push(Array.from(new Uint8Array(bytes)).map(function (byte) { return byte.toString(16).padStart(2, '0'); }).join(''));
         excerpts.push(body.replace(/\s+/g, ' ').trim().slice(0, 320));
       } catch (error) {
+        console.warn('Evidence capture failed for ' + urls[i] + ':', error);
         hashes.push('');
         excerpts.push(fallbackExcerpt.slice(0, 320));
       }
@@ -196,35 +224,51 @@
   }
 
   async function loadClaimDetail() {
-    if (!document.body.dataset.claimId || !config.contractAddress) return;
+    if (!config.contractAddress) {
+      setText('[data-live-state]', 'AWAITING CONTRACT DEPLOYMENT');
+      return;
+    }
     try {
       var claimId = new URLSearchParams(window.location.search).get('claim') || document.body.dataset.claimId;
+      if (!claimId) return;
       var claim = await readContract('get_claim', [claimId]);
-      var reviews = (await readContract('get_reviews', [claimId]) || []).filter(function (item) { return item.claim_id === claimId; });
-      var evidence = (await readContract('get_evidence', [claimId]) || []).filter(function (item) { return item.claim_id === claimId; });
-      if (!claim || !claim.claim_id) throw new Error('Claim not found');
-      document.body.dataset.claimId = claim.claim_id;
-      setText('.detail-head h1', claim.claim_text);
-      setText('.detail-page .claim-quote, .detail-page blockquote', '“' + claim.claim_text + '”');
-      setText('.detail-page .claim-meta', 'Submitted by ' + shortAddress(claim.submitter) + ' · ' + claim.claim_type);
-      var current = reviews[reviews.length - 1] || {};
-      setText('.result-status', current.status || 'insufficient');
-      setText('.result-row h2', current.status === 'supported' ? 'Evidence fits the claim.' : current.status === 'refuted' ? 'Evidence conflicts with the claim.' : 'Evidence is not conclusive.');
-      setText('.result-reason', current.reason || 'No explanation was returned.');
-      setText('.result-score strong', String(evidence.length).padStart(2, '0'));
-      setText('.result-score span', 'evidence\nreviewed');
+      if (!claim || Object.keys(claim).length === 0) {
+        setText('[data-live-state]', 'CLAIM NOT FOUND ON CONTRACT');
+        return;
+      }
+      var reviews = await readContract('get_reviews', [claimId]) || [];
+      var evidence = await readContract('get_evidence', [claimId]) || [];
+      document.body.dataset.claimId = claim.claim_id || claimId;
+      setText('.detail-head h1', claim.claim_text || 'Claim detail');
+      setText('.detail-page .claim-quote, .detail-page blockquote', '”' + (claim.claim_text || '') + '”');
+      setText('.detail-page .claim-meta', 'Submitted by ' + shortAddress(claim.submitter) + ' · ' + (claim.claim_type || ''));
+      var current = (Array.isArray(reviews) && reviews[reviews.length - 1]) || {};
+      setText('.result-status', current.status || 'pending');
+      setText('.result-row h2', current.status === 'supported' ? 'Evidence fits the claim.' : current.status === 'refuted' ? 'Evidence conflicts with the claim.' : 'Review pending or incomplete.');
+      setText('.result-reason', current.reason || 'Waiting for validator consensus.');
+      var evidenceCount = Array.isArray(evidence) ? evidence.length : 0;
+      setText('.result-score strong', String(evidenceCount).padStart(2, '0'));
       var evidenceStack = $('.evidence-stack');
-      if (evidenceStack) evidenceStack.innerHTML = evidence.map(function (item) {
-        return '<div class="evidence-card"><span class="evidence-icon">' + (item.relation === 'opposing' ? '!' : '✓') + '</span><div><div class="block-label">' + item.relation.toUpperCase() + ' EVIDENCE</div><a class="evidence-title evidence-url" href="' + item.url + '" target="_blank" rel="noreferrer">' + item.url.replace(/^https?:\/\//, '') + ' ↗</a><p class="evidence-excerpt">' + (item.excerpt || 'No excerpt supplied.') + '</p><div class="evidence-meta">' + (item.content_hash ? 'SHA-256 ' + item.content_hash.slice(0, 12) + '…' : 'Fingerprint unavailable') + ' · captured ' + item.captured_at + '</div></div></div>';
-      }).join('');
+      if (evidenceStack && Array.isArray(evidence) && evidence.length > 0) {
+        evidenceStack.innerHTML = evidence.map(function (item) {
+          return '<div class=”evidence-card”><span class=”evidence-icon”>' + (item.relation === 'opposing' ? '!' : '✓') + '</span><div><div class=”block-label”>' + (item.relation || 'EVIDENCE').toUpperCase() + '</div><a class=”evidence-title evidence-url” href=”' + (item.url || '#') + '” target=”_blank” rel=”noreferrer”>' + (item.url ? item.url.replace(/^https?:\/\//, '') : 'Evidence') + ' ↗</a><p class=”evidence-excerpt”>' + (item.excerpt || 'No excerpt provided.') + '</p><div class=”evidence-meta”>' + (item.content_hash ? 'SHA-256 ' + item.content_hash.slice(0, 12) + '…' : 'Hash pending') + ' · ' + (item.captured_at || 'Date pending') + '</div></div></div>';
+        }).join('');
+      }
       var historyList = $('.history-list');
-      if (historyList) historyList.innerHTML = reviews.slice().reverse().map(function (item, index) {
-        return '<div class="history-item ' + (index === 0 ? 'current' : '') + '"><div class="history-marker">' + item.version + '</div><div><div class="history-top"><strong>' + item.status + (index === 0 ? ' · current' : '') + '</strong><span class="mono">' + item.created_at + '</span></div><p>' + item.reason + '</p></div></div>';
-      }).join('') || '<div class="counter-item"><div class="block-label">NO REVIEWS YET</div><p>Submit the first paid review to create the public audit trail.</p></div>';
-      setText('[data-live-state]', 'LIVE CONTRACT · ' + claim.claim_id);
-      setText('[data-review-count]', reviews.length + ' REVIEW ' + (reviews.length === 1 ? 'EVENT' : 'EVENTS'));
+      if (historyList) {
+        if (Array.isArray(reviews) && reviews.length > 0) {
+          historyList.innerHTML = reviews.slice().reverse().map(function (item, index) {
+            return '<div class=”history-item ' + (index === 0 ? 'current' : '') + '”><div class=”history-marker”>' + (item.version || (reviews.length - index)) + '</div><div><div class=”history-top”><strong>' + (item.status || 'pending') + (index === 0 ? ' · current' : '') + '</strong><span class=”mono”>' + (item.created_at || 'pending') + '</span></div><p>' + (item.reason || 'Review in progress…') + '</p></div></div>';
+          }).join('');
+        } else {
+          historyList.innerHTML = '<div class=”counter-item”><div class=”block-label”>NO REVIEWS YET</div><p>Submit the first paid review to create the public audit trail.</p></div>';
+        }
+      }
+      setText('[data-live-state]', 'LIVE CONTRACT · ' + claimId);
+      setText('[data-review-count]', (Array.isArray(reviews) ? reviews.length : 0) + ' REVIEW ' + (reviews.length === 1 ? 'EVENT' : 'EVENTS'));
     } catch (error) {
-      setText('[data-live-state]', 'LIVE CONTRACT READ FAILED');
+      console.warn('Claim detail load failed:', error);
+      setText('[data-live-state]', 'CLAIM READ FAILED: ' + error.message);
     }
   }
 
@@ -247,14 +291,36 @@
     refreshPaymentPolicy();
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      submitPaidReview(form).catch(function (error) { message(form, '× ' + error.message, true); });
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      var originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Processing…';
+      submitPaidReview(form).catch(function (error) {
+        message(form, '× ' + error.message, true);
+        console.error('Submit error:', error);
+      }).finally(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      });
     });
   });
 
   $$('[data-rebuttal-form]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      submitRebuttal(form).catch(function (error) { message(form, '× ' + error.message, true); });
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      var originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Processing…';
+      submitRebuttal(form).catch(function (error) {
+        message(form, '× ' + error.message, true);
+        console.error('Rebuttal error:', error);
+      }).finally(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      });
     });
   });
 
