@@ -32,7 +32,7 @@ python3 -m unittest contracts.test_contract_structure
 
 The GenLayer VM checks should additionally be run with `genvm-lint` and
 `gltest` in a GenLayer SDK environment.
-- The owner can withdraw accumulated treasury funds to `treasury_address`.
+- The default treasury is `0xf9642b695d4ddf58599c953a791f94c2e96b6a57`; the owner can withdraw accumulated fees to `treasury_address` and update it through `set_treasury_address`.
 - `pause` is available to the owner or emergency guardian. Ownership uses a two-step transfer (`transfer_ownership` / `accept_ownership`). A production treasury/owner should be a multisig address.
 
 ## Public methods

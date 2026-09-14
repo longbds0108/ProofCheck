@@ -31,6 +31,14 @@ class ProofCheckContractStructureTests(unittest.TestCase):
         self.assertIn("gl.message.value != expected_value", SOURCE)
         self.assertIn('"verification_fee_wei": str(self.verification_fee)', SOURCE)
 
+    def test_configured_treasury_receives_withdrawable_fees(self):
+        self.assertIn(
+            'DEFAULT_TREASURY_ADDRESS = "0xf9642b695d4ddf58599c953a791f94c2e96b6a57"',
+            SOURCE,
+        )
+        self.assertIn("self.treasury_address = Address(DEFAULT_TREASURY_ADDRESS)", SOURCE)
+        self.assertIn("_Recipient(self.treasury_address).emit_transfer", SOURCE)
+
     def test_access_and_emergency_guards_exist(self):
         self.assertIn("def _assert_owner", SOURCE)
         self.assertIn("def pause", SOURCE)

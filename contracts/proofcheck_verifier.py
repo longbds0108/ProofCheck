@@ -15,6 +15,11 @@ from dataclasses import dataclass
 from genlayer import *
 
 
+# The ProofCheck treasury receives verification fees after the owner executes
+# `withdraw_treasury`. Network fees remain separate and are paid to GenLayer.
+DEFAULT_TREASURY_ADDRESS = "0xf9642b695d4ddf58599c953a791f94c2e96b6a57"
+
+
 @allow_storage
 @dataclass
 class Claim:
@@ -114,7 +119,7 @@ class ProofCheckVerifier(gl.Contract):
         self.owner = gl.message.sender_address
         self.pending_owner = Address("0x0000000000000000000000000000000000000000")
         self.emergency_guardian = gl.message.sender_address
-        self.treasury_address = gl.message.sender_address
+        self.treasury_address = Address(DEFAULT_TREASURY_ADDRESS)
         self.paused = False
         self.verification_fee = u256(10**18)  # 1 GEN; network fees are separate.
         self.next_claim_number = u256(1)

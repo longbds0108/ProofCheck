@@ -9,6 +9,7 @@
   var shortAddress = function (address) { return address ? address.slice(0, 6) + '…' + address.slice(-4) : 'Connect wallet'; };
   var weiToGen = function (wei) { return (Number(wei || 0n) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 4 }); };
   var genToWei = function (value) { return BigInt(Math.round(Number(value || 0) * 1e18)); };
+  var renderTreasury = function (address) { $$('[data-treasury-address]').forEach(function (el) { el.textContent = address || 'Read from contract'; }); };
   var message = function (form, text, isError) {
     var el = $('[data-form-message]', form || document);
     if (el) { el.textContent = text; el.classList.toggle('is-error', Boolean(isError)); }
@@ -52,9 +53,11 @@
     var policy = null;
     try { policy = await readContract('get_payment_policy', []); } catch (error) {
       setText('[data-chain-status]', config.contractAddress ? 'Contract read unavailable' : 'Awaiting Studionet contract');
+      renderTreasury(config.treasuryAddress);
       return null;
     }
     state.feeWei = BigInt(policy.verification_fee_wei || 0);
+    renderTreasury(policy.treasury_address || config.treasuryAddress);
     $$('[data-verification-fee]').forEach(function (el) { el.textContent = weiToGen(state.feeWei) + ' GEN'; });
     $$('[data-contract-status]').forEach(function (el) { el.textContent = policy.paused === 'True' ? 'Paused for maintenance' : 'Studionet contract live'; });
     updatePaymentTotal();
@@ -186,6 +189,8 @@
       button.disabled = false;
     });
   });
+
+  renderTreasury(config.treasuryAddress);
 
   loadClaimDetail();
 
