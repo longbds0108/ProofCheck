@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Prepare a ProofCheck verification in GenLayer Studio." />
+    <title>GenLayer Studio — ProofCheck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header class="site-header"><div class="shell nav"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>ProofCheck</a><nav class="nav-links" aria-label="Primary navigation"><a href="/records/">Records</a><a href="/submit/">Submit</a><a class="button" href="/">Back home <span class="arrow">↗</span></a></nav></div></header>
+    <main class="shell page studio-page">
+      <div class="breadcrumbs"><a href="/">ProofCheck</a><span>/</span><span>GenLayer Studio</span></div>
+      <div class="page-head"><div><div class="eyebrow">GENLAYER INTEGRATION / 02</div><h1>Run a review with validators.</h1></div><p class="page-intro">ProofCheck uses an Intelligent Contract to read public evidence, compare the decisive result across validators, and preserve the review on-chain.</p></div>
+      <div class="studio-grid">
+        <section class="surface form-card studio-form-card"><div class="eyebrow">STUDIO TRANSACTION INPUT</div><h2>Prepare a verification.</h2><p class="studio-copy">This creates the exact input for <span class="mono">verify_open_source_claim</span>. Deploy the included contract first if you want to submit it to a live network.</p>
+          <form data-studio-form><div class="field-grid"><div class="field full"><label for="studio-claim">Claim statement</label><textarea id="studio-claim" required>Our smart contract repository is open source.</textarea></div><div class="field"><label for="studio-repo">GitHub repository</label><input id="studio-repo" type="url" value="https://github.com/genlayerlabs/genlayer-project-boilerplate" required /></div><div class="field"><label for="studio-evidence">Evidence source</label><input id="studio-evidence" type="url" value="https://github.com/genlayerlabs/genlayer-project-boilerplate/blob/main/LICENSE" required /></div><div class="field full"><label for="contract-address">Deployed contract address <span class="optional">optional</span></label><input id="contract-address" placeholder="0x..." /></div></div><div class="form-footer"><span class="form-message" data-studio-message role="status" aria-live="polite"></span><button class="button" type="submit">Prepare transaction <span class="arrow">→</span></button></div></form>
+        </section>
+        <aside class="studio-aside"><div class="surface meta-card"><div class="eyebrow">NETWORK TARGET</div><h3>Studionet</h3><div class="meta-list"><div class="meta-row"><span>Chain ID</span><strong class="mono">61999</strong></div><div class="meta-row"><span>Consensus</span><strong>Validator review</strong></div><div class="meta-row"><span>Data access</span><strong>Public web</strong></div></div><a class="button ghost full-button" href="https://studio.genlayer.com/" target="_blank" rel="noreferrer">Open GenLayer Studio <span class="arrow">↗</span></a></div><div class="surface meta-card"><div class="eyebrow">CONTRACT INTERFACE</div><div class="code-block"><div><span class="code-key">write</span> verify_open_source_claim</div><div class="code-muted">(claim, repo_url, evidence_url)</div><div class="code-gap"></div><div><span class="code-key">view</span> get_latest_record()</div></div><p class="studio-note">The contract reads the submitted URLs with GenLayer Web Access. The final record stores the status, reason, excerpt, and source URLs.</p></div></aside>
+      </div>
+      <section class="surface lifecycle"><div class="lifecycle-head"><div><div class="eyebrow">TRANSACTION LIFECYCLE</div><h3>What happens after submission?</h3></div><span class="studio-pill"><i></i> Studio-ready</span></div><div class="lifecycle-track"><div class="lifecycle-step"><b>01</b><strong>Queued</strong><span>Your write request enters the network.</span></div><div class="lifecycle-step"><b>02</b><strong>Validators read</strong><span>Each validator checks the public sources.</span></div><div class="lifecycle-step"><b>03</b><strong>Status decided</strong><span>Supported, refuted, or insufficient.</span></div><div class="lifecycle-step"><b>04</b><strong>Finalized</strong><span>The review becomes part of the record history.</span></div></div></section>
+      <div class="studio-disclaimer"><span class="eyebrow">IMPORTANT</span><p>Web pages can change or become unavailable. ProofCheck records the URLs and review time so every result stays scoped to the evidence validators could access then.</p></div>
+    </main>
+    <footer class="footer"><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">GenLayer Studio / MVP</span></div></footer>
+    <script src="/studio/studio.js"></script>
+  </body>
+</html>
