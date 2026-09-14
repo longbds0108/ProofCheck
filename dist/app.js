@@ -28,18 +28,34 @@
   async function connectWallet() {
     try {
       await loadSdk();
+      if (!window.ethereum) throw new Error('MetaMask not found. Please install MetaMask extension.');
       var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (!accounts || !accounts[0]) throw new Error('No wallet account was returned.');
+      if (!accounts || !accounts[0]) throw new Error('No wallet account was returned. Please check MetaMask.');
       state.account = accounts[0];
-      var chainName = config.network === 'studio-next' ? 'studio_next' : 'studionet';
-      var chain = state.chains[chainName] || state.chains.studio_next || state.chains.studionet;
+
+      // Get the correct chain object
+      var chain = null;
+      if (state.chains.studio_next) {
+        chain = state.chains.studio_next;
+      } else if (state.chains.studionet) {
+        chain = state.chains.studionet;
+      } else {
+        throw new Error('GenLayer chain not available. Available chains: ' + Object.keys(state.chains).join(', '));
+      }
+
       state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
-      if (state.client.connect) await state.client.connect(chainName);
+      console.log('Created client with chain:', chain.name || 'unknown');
+
+      if (state.client.connect) {
+        await state.client.connect();
+      }
+
       $$('[data-wallet-connect]').forEach(function (button) { button.textContent = shortAddress(state.account); button.classList.add('is-connected'); });
       await refreshPaymentPolicy();
       return state.account;
     } catch (error) {
       console.error('Wallet connection failed:', error);
+      alert('Connection failed: ' + error.message);
       throw error;
     }
   }
@@ -48,8 +64,10 @@
     try {
       await loadSdk();
       if (!state.readClient) {
-        var chainName = config.network === 'studio-next' ? 'studio_next' : 'studionet';
-        var chain = state.chains[chainName] || state.chains.studio_next || state.chains.studionet;
+        var chain = state.chains.studio_next || state.chains.studionet;
+        if (!chain) {
+          throw new Error('GenLayer chain not available');
+        }
         state.readClient = state.sdk.createClient({ chain: chain });
       }
       return state.readClient;
