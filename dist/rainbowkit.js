@@ -1,94 +1,114 @@
-/* RainbowKit bridge for the homepage CTA. The site stays buildless, so the
-   React wallet island is loaded from esm.sh alongside the existing SDK. */
-import React, { useEffect, useRef } from 'https://esm.sh/react@18.3.1';
-import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
-import {
-  RainbowKitProvider,
-  useChainModal,
-  useConnectModal,
-} from 'https://esm.sh/@rainbow-me/rainbowkit@2.2.11?deps=@tanstack/react-query@5.59.16,react-dom@18.3.1,react@18.3.1,viem@2.21.55,wagmi@2.12.0';
-import {
-  WagmiProvider,
-  createConfig,
-  http,
-  injected,
-  useAccount,
-} from 'https://esm.sh/wagmi@2.12.0?deps=@tanstack/react-query@5.59.16,react-dom@18.3.1,react@18.3.1,viem@2.21.55';
-import { QueryClient, QueryClientProvider } from 'https://esm.sh/@tanstack/react-query@5.59.16?deps=react@18.3.1';
+/* Wallet connection bridge - simplified version without React hook complexity.
+   Uses direct Web3 provider (window.ethereum) for wallet connection. */
 
 const studionet = {
-  id: 61999,
+  id: '0xf1df',  // 61999 in hex
   name: 'GenLayer Studionet',
   nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
-  rpcUrls: { default: { http: ['https://studio.genlayer.com/api'] } },
-  blockExplorers: {
-    default: { name: 'GenLayer Studio Explorer', url: 'https://explorer-studio.genlayer.com' },
-  },
+  rpcUrl: 'https://studio.genlayer.com/api',
+  blockExplorer: 'https://explorer-studio.genlayer.com',
 };
 
-const wagmiConfig = createConfig({
-  chains: [studionet],
-  connectors: [injected()],
-  transports: { [studionet.id]: http(studionet.rpcUrls.default.http[0]) },
-});
-
-const queryClient = new QueryClient();
-
-function StartCheckBridge() {
-  const { address, isConnected, chainId } = useAccount();
-  const { openConnectModal } = useConnectModal();
-  const { openChainModal } = useChainModal();
-  const pendingStart = useRef(false);
-
-  useEffect(() => {
-    const button = document.querySelector('[data-start-check]');
-    if (!button) return undefined;
-
-    const startCheck = () => {
-      pendingStart.current = true;
-      if (isConnected && chainId !== studionet.id) {
-        if (openChainModal) openChainModal();
-        return;
+async function switchToStudionet() {
+  try {
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: studionet.id }],
+    });
+    return true;
+  } catch (error) {
+    if (error.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: studionet.id,
+              chainName: studionet.name,
+              rpcUrls: [studionet.rpcUrl],
+              nativeCurrency: studionet.nativeCurrency,
+              blockExplorerUrls: [studionet.blockExplorer],
+            },
+          ],
+        });
+        return true;
+      } catch (addError) {
+        console.error('Failed to add Studionet:', addError);
+        return false;
       }
-      if (isConnected && address) {
-        window.location.href = '/submit/';
-        return;
-      }
-      if (openConnectModal) openConnectModal();
-    };
-
-    button.addEventListener('click', startCheck);
-    return () => button.removeEventListener('click', startCheck);
-  }, [address, chainId, isConnected, openChainModal, openConnectModal]);
-
-  useEffect(() => {
-    if (!pendingStart.current || !isConnected || !address) return;
-    if (chainId !== studionet.id) {
-      if (openChainModal) openChainModal();
-      return;
     }
-    pendingStart.current = false;
-    window.location.href = '/submit/';
-  }, [address, chainId, isConnected, openChainModal]);
-
-  return null;
+    console.error('Failed to switch chain:', error);
+    return false;
+  }
 }
 
-function WalletIsland() {
-  return React.createElement(
-    WagmiProvider,
-    { config: wagmiConfig },
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(
-        RainbowKitProvider,
-        { initialChain: studionet, modalSize: 'compact' },
-        React.createElement(StartCheckBridge),
-      ),
-    ),
-  );
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert('Please install MetaMask or another EIP-1193 wallet.');
+    return null;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({
+      method: 'eth_requestAccounts',
+    });
+
+    if (accounts && accounts[0]) {
+      const address = accounts[0];
+
+      // Get current chain
+      const chainId = await window.ethereum.request({
+        method: 'eth_chainId',
+      });
+
+      // If not on Studionet, switch
+      if (chainId !== studionet.id) {
+        const switched = await switchToStudionet();
+        if (!switched) {
+          alert('Please switch to GenLayer Studionet to continue.');
+          return null;
+        }
+      }
+
+      return address;
+    }
+  } catch (error) {
+    if (error.code === 4001) {
+      console.log('User rejected wallet connection');
+    } else {
+      console.error('Wallet connection error:', error);
+      alert('Failed to connect wallet: ' + error.message);
+    }
+    return null;
+  }
 }
 
-const mount = document.getElementById('rainbowkit-root');
-if (mount) createRoot(mount).render(React.createElement(WalletIsland));
+// Attach to button
+document.addEventListener('DOMContentLoaded', async function () {
+  const button = document.querySelector('[data-start-check]');
+  if (!button) return;
+
+  button.addEventListener('click', async function (event) {
+    event.preventDefault();
+    const address = await connectWallet();
+    if (address) {
+      window.location.href = '/submit/';
+    }
+  });
+
+  // Optional: Update button text if wallet is already connected
+  if (window.ethereum) {
+    try {
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts',
+      });
+      if (accounts && accounts[0]) {
+        const shortAddr = accounts[0].slice(0, 6) + '…' + accounts[0].slice(-4);
+        button.textContent = shortAddr;
+        button.disabled = false;
+      }
+    } catch (error) {
+      console.error('Failed to check connected account:', error);
+    }
+  }
+});
