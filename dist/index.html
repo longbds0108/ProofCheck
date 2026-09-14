@@ -242,6 +242,7 @@
         <nav class="nav-links" aria-label="Primary navigation">
           <a href="/how-it-works/">How it works</a>
           <a href="/records/pc-25-047/">Claim detail</a>
+          <button class="button ghost wallet-button" type="button" data-wallet-connect>Connect wallet</button>
           <a class="button" href="/submit/">Check a claim <span class="arrow">↗</span></a>
         </nav>
       </div>
@@ -299,27 +300,13 @@
       <section class="shell section" id="intake">
         <div class="intake">
           <div><div class="eyebrow">03 / Start a proof check</div><h2>Which repo needs a clearer record?</h2><p>Enter a GitHub URL to start a verification draft. This is the first step — not a final verdict.</p></div>
-          <form class="intake-form" id="check-form"><label for="repo-url">GitHub repository URL</label><div class="input-row"><input id="repo-url" type="url" placeholder="https://github.com/your-project/repo" required /><button class="button" type="submit">Create record <span class="arrow">→</span></button></div><div class="form-message" id="form-message" role="status" aria-live="polite"></div></form>
+          <form class="intake-form" id="check-form" data-quick-start><label for="repo-url">GitHub repository URL</label><div class="input-row"><input id="repo-url" name="repo" type="url" placeholder="https://github.com/your-project/repo" required /><button class="button" type="submit">Continue to claim <span class="arrow">→</span></button></div><div class="form-message" id="form-message" data-quick-message role="status" aria-live="polite"></div></form>
         </div>
       </section>
     </main>
 
     <footer><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">A public record for public claims.</span></div></footer>
 
-    <script>
-      document.getElementById('check-form').addEventListener('submit', function (event) {
-        event.preventDefault();
-        const input = document.getElementById('repo-url');
-        const message = document.getElementById('form-message');
-        try {
-          const url = new URL(input.value);
-          if (url.hostname !== 'github.com' && url.hostname !== 'www.github.com') throw new Error('github');
-          message.textContent = '✓ Repo received. The verification draft is ready for the next step.';
-          input.value = '';
-        } catch (error) {
-          message.textContent = 'Enter a valid GitHub repository URL.';
-        }
-      });
-    </script>
+    <script src="/config.js"></script><script src="/app.js"></script>
   </body>
 </html>
