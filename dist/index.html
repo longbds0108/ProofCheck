@@ -184,6 +184,30 @@
       .footer-row { display: flex; justify-content: space-between; gap: 24px; }
       .footer-row strong { color: var(--ink); font-family: "Space Grotesk", sans-serif; }
 
+      @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes rise-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      @keyframes glow-pulse { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+      @keyframes button-sheen { from { transform: translateX(-130%) skewX(-16deg); } to { transform: translateX(170%) skewX(-16deg); } }
+      body { animation: page-in .55s ease both; }
+      header { animation: rise-in .6s ease both; }
+      .hero-copy > * { animation: rise-in .65s ease both; }
+      .hero-copy > *:nth-child(2) { animation-delay: .08s; } .hero-copy > *:nth-child(3) { animation-delay: .16s; } .hero-copy > *:nth-child(4) { animation-delay: .24s; }
+      .proof-card { animation: rise-in .75s .18s ease both; }
+      .proof-orbit { animation: orbit-spin 28s linear infinite; transform-origin: 58% 48%; }
+      .orbit-dot, .live::before { animation: glow-pulse 2.2s ease-in-out infinite; }
+      .button { position: relative; overflow: hidden; isolation: isolate; }
+      .button::after { content: ""; position: absolute; inset: -30% auto -30% -65%; z-index: -1; width: 34%; background: rgba(255,255,255,.34); transform: skewX(-16deg); }
+      .button:hover::after { animation: button-sheen .6s ease both; }
+      .button .arrow, .record-link span:last-child { transition: transform .2s ease; }
+      .button:hover .arrow, .record:hover .record-link span:last-child { transform: translateX(4px); }
+      .record:nth-child(1) { animation: rise-in .6s .12s ease both; } .record:nth-child(2) { animation: rise-in .6s .2s ease both; } .record:nth-child(3) { animation: rise-in .6s .28s ease both; }
+      .step { transition: padding-left .25s ease, background .25s ease; }
+      .step:hover { padding-left: 10px; background: rgba(200,255,77,.035); }
+      .intake { transition: box-shadow .3s ease, border-color .3s ease; }
+      .intake:hover { border-color: rgba(200,255,77,.58); box-shadow: 0 20px 55px rgba(0,0,0,.16), 0 0 42px rgba(200,255,77,.06); }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+
       @media (max-width: 900px) {
         .shell { width: min(100% - 42px, 700px); }
         .nav { min-height: 76px; } .nav-links a:not(.button) { display: none; }
