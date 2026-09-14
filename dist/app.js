@@ -43,7 +43,22 @@
       state.account = accounts[0];
       console.log('Connected account:', state.account);
 
-      // Try to find the correct chain - studio_next is the correct one for GenLayer
+      // Get current chain ID from wallet
+      var chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+      var currentChainId = parseInt(chainIdHex, 16);
+      console.log('Current chain ID:', currentChainId);
+
+      // Check if on correct network (61997 = GenLayer Studio Next)
+      var GENLayer_CHAIN_ID = 61997;
+      if (currentChainId !== GENLayer_CHAIN_ID) {
+        state.wrongNetwork = true;
+        console.warn('Wrong network. Current:', currentChainId, 'Expected:', GENLayer_CHAIN_ID);
+        throw new Error('Please switch to GenLayer Studio Next network (Chain ID: ' + GENLayer_CHAIN_ID + '). Current: ' + currentChainId);
+      }
+
+      state.wrongNetwork = false;
+
+      // Try to find the correct chain
       var chain = null;
       console.log('Available chains:', Object.keys(state.chains));
 
