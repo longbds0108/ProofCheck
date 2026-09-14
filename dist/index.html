@@ -219,6 +219,24 @@
         .workflow { grid-template-columns: 1fr; gap: 42px; }
         .intake { grid-template-columns: 1fr; gap: 30px; padding: 30px 24px; }
       }
+      .wallet-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(7, 13, 11, 0.85); backdrop-filter: blur(4px); animation: fadeIn .2s ease; }
+      .wallet-modal.active { display: flex; align-items: center; justify-content: center; }
+      .wallet-modal-content { background: var(--bg-deep); border: 1px solid var(--line); border-radius: 16px; padding: 30px; max-width: 420px; width: 90%; animation: slideUp .3s ease; }
+      .wallet-modal-header { text-align: center; margin-bottom: 30px; }
+      .wallet-modal-header h2 { font: 600 24px "Space Grotesk", sans-serif; margin: 0 0 8px; }
+      .wallet-modal-header p { color: var(--muted); margin: 0; }
+      .wallet-options { display: grid; gap: 12px; }
+      .wallet-option { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: transparent; cursor: pointer; transition: all .2s ease; }
+      .wallet-option:hover { border-color: var(--lime); background: rgba(200,255,77,.05); }
+      .wallet-option-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+      .wallet-option-info h3 { font: 600 14px "Space Grotesk", sans-serif; margin: 0; color: var(--ink); }
+      .wallet-option-info p { font: 11px "DM Mono", monospace; color: var(--muted); margin: 4px 0 0; }
+      .wallet-modal-footer { margin-top: 20px; text-align: center; color: var(--muted); font-size: 12px; }
+      .wallet-modal-close { position: absolute; top: 20px; right: 20px; background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all .2s; }
+      .wallet-modal-close:hover { color: var(--lime); border-color: var(--lime); }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
       @media (max-width: 520px) {
         .shell { width: calc(100% - 30px); } .brand { font-size: 18px; }
         .nav .button { min-height: 42px; padding: 0 14px; font-size: 12px; }
@@ -229,6 +247,7 @@
         .section-head { display: block; } .section-intro { margin-top: 20px; }
         .input-row { flex-direction: column; } .input-row .button { width: 100%; }
         .footer-row { flex-direction: column; }
+        .wallet-modal-content { width: calc(100% - 30px); }
       }
     </style>
   </head>
@@ -306,6 +325,37 @@
     </main>
 
     <footer><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">A public record for public claims.</span></div></footer>
+
+    <!-- Wallet Modal -->
+    <div class="wallet-modal" id="wallet-modal">
+      <div class="wallet-modal-content">
+        <button class="wallet-modal-close" id="wallet-modal-close">✕</button>
+        <div class="wallet-modal-header">
+          <h2>Connect Wallet</h2>
+          <p>Select your wallet to get started</p>
+        </div>
+        <div class="wallet-options">
+          <button class="wallet-option" id="connect-metamask">
+            <div class="wallet-option-icon">🦊</div>
+            <div class="wallet-option-info" style="flex: 1; text-align: left;">
+              <h3>MetaMask</h3>
+              <p>Connect to your MetaMask wallet</p>
+            </div>
+            <span style="color: var(--lime);">→</span>
+          </button>
+          <button class="wallet-option" disabled style="opacity: 0.5;">
+            <div class="wallet-option-icon">👛</div>
+            <div class="wallet-option-info" style="flex: 1; text-align: left;">
+              <h3>More Wallets Coming</h3>
+              <p>WalletConnect & others (soon)</p>
+            </div>
+          </button>
+        </div>
+        <div class="wallet-modal-footer">
+          Don't have a wallet? <a href="https://metamask.io/" target="_blank" rel="noreferrer" style="color: var(--lime); text-decoration: underline;">Install MetaMask</a>
+        </div>
+      </div>
+    </div>
 
     <script src="/config.js"></script><script src="/mock-contract.js"></script><script src="/app.js"></script>
   </body>

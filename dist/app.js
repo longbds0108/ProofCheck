@@ -367,17 +367,56 @@
     });
   });
 
-  // Handle "Start Check" button on homepage
-  var startCheckBtn = document.getElementById('start-check-btn');
-  if (startCheckBtn) {
-    startCheckBtn.addEventListener('click', async function (event) {
-      event.preventDefault();
+  // Wallet Modal Setup
+  var walletModal = document.getElementById('wallet-modal');
+  var walletModalClose = document.getElementById('wallet-modal-close');
+  var connectMetamaskBtn = document.getElementById('connect-metamask');
+
+  function showWalletModal() {
+    if (walletModal) {
+      walletModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function hideWalletModal() {
+    if (walletModal) {
+      walletModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  }
+
+  if (walletModalClose) {
+    walletModalClose.addEventListener('click', hideWalletModal);
+  }
+
+  if (walletModal) {
+    walletModal.addEventListener('click', function(e) {
+      if (e.target === walletModal) {
+        hideWalletModal();
+      }
+    });
+  }
+
+  if (connectMetamaskBtn) {
+    connectMetamaskBtn.addEventListener('click', async function() {
       try {
+        hideWalletModal();
         await connectWallet();
         window.location.href = '/submit/';
       } catch (error) {
-        alert('Wallet connection failed: ' + error.message);
+        console.error('Connection failed:', error);
+        showWalletModal();
       }
+    });
+  }
+
+  // Handle "Start Check" button on homepage
+  var startCheckBtn = document.getElementById('start-check-btn');
+  if (startCheckBtn) {
+    startCheckBtn.addEventListener('click', function (event) {
+      event.preventDefault();
+      showWalletModal();
     });
   }
 
