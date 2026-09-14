@@ -44,7 +44,13 @@
   }
 
   async function readContract(functionName, args) {
-    if (!config.contractAddress) throw new Error('The Studionet contract address is not configured yet.');
+    // Use mock contract if no real contract address is configured
+    if (!config.contractAddress) {
+      if (window.MOCK_CONTRACT && window.MOCK_CONTRACT[functionName]) {
+        return window.MOCK_CONTRACT[functionName](...(args || []));
+      }
+      throw new Error('The Studionet contract address is not configured yet.');
+    }
     var client = await getReadClient();
     return client.readContract({ address: config.contractAddress, functionName: functionName, args: args || [], jsonSafeReturn: true });
   }
@@ -76,8 +82,6 @@
   }
 
   async function submitPaidReview(form) {
-    if (!config.contractAddress) throw new Error('The contract address is not configured. Deploy ProofCheck to Studionet first.');
-    await connectWallet();
     var reward = genToWei($('#source-reward', form).value);
     var author = $('#source-author', form).value.trim();
     if (reward > 0n && !/^0x[a-fA-F0-9]{40}$/.test(author)) throw new Error('Add a valid source author wallet to include a reward.');
@@ -86,6 +90,30 @@
     var evidenceNote = $('#evidence-note', form).value.trim();
     message(form, 'Capturing evidence fingerprints…');
     var captured = await captureEvidence(evidenceList, evidenceNote);
+
+    // Use mock contract if no real contract address
+    if (!config.contractAddress && window.MOCK_CONTRACT) {
+      message(form, 'Processing claim with mock contract…');
+      var result = await window.MOCK_CONTRACT.verifyClaim(
+        $('#claim-type', form).value,
+        $('#claim', form).value.trim(),
+        $('#repo', form).value.trim(),
+        evidenceUrls,
+        captured.hashes.join('\n'),
+        captured.excerpts.join('\n'),
+        author,
+        reward
+      );
+      var txId = 'MOCK-' + Date.now();
+      setText('[data-tx-id]', txId, form);
+      message(form, '✓ Claim submitted (mock mode). Result: ' + result.status);
+      form.reset();
+      updatePaymentTotal();
+      return result;
+    }
+
+    // Real contract flow
+    await connectWallet();
     var write = {
       address: config.contractAddress,
       functionName: 'verify_open_source_claim',
@@ -129,7 +157,25 @@
   async function submitRebuttal(form) {
     var claimId = document.body.dataset.claimId;
     if (!claimId) throw new Error('This detail page is missing a claim id.');
-    if (!config.contractAddress) throw new Error('The contract address is not configured.');
+
+    // Use mock contract if no real contract address
+    if (!config.contractAddress && window.MOCK_CONTRACT) {
+      message(form, 'Processing rebuttal with mock contract…');
+      var result = await window.MOCK_CONTRACT.submitRebuttal(
+        claimId,
+        $('#counter-url', form).value.trim(),
+        '',
+        $('#counter-point', form).value.trim(),
+        '',
+        0n
+      );
+      var txId = 'MOCK-' + Date.now();
+      setText('[data-tx-id]', txId, form);
+      message(form, '✓ Rebuttal submitted (mock mode). New result: ' + result.status);
+      return result;
+    }
+
+    // Real contract flow
     await connectWallet();
     var write = {
       address: config.contractAddress,
