@@ -83,6 +83,35 @@ async function connectWallet() {
   }
 }
 
+function shortAddress(addr) {
+  return addr.slice(0, 6) + '…' + addr.slice(-4);
+}
+
+async function updateButtonState() {
+  const button = document.querySelector('[data-start-check]');
+  if (!button) return;
+
+  if (!window.ethereum) {
+    button.textContent = 'Connect wallet';
+    return;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({
+      method: 'eth_accounts',
+    });
+    if (accounts && accounts[0]) {
+      button.textContent = shortAddress(accounts[0]);
+      button.classList.add('is-connected');
+    } else {
+      button.textContent = 'Connect wallet';
+      button.classList.remove('is-connected');
+    }
+  } catch (error) {
+    console.error('Failed to check connected account:', error);
+  }
+}
+
 // Attach to button
 document.addEventListener('DOMContentLoaded', async function () {
   const button = document.querySelector('[data-start-check]');
@@ -96,19 +125,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
   });
 
-  // Optional: Update button text if wallet is already connected
+  // Update button state on page load
+  await updateButtonState();
+
+  // Listen for wallet account changes
   if (window.ethereum) {
-    try {
-      const accounts = await window.ethereum.request({
-        method: 'eth_accounts',
-      });
-      if (accounts && accounts[0]) {
-        const shortAddr = accounts[0].slice(0, 6) + '…' + accounts[0].slice(-4);
-        button.textContent = shortAddr;
-        button.disabled = false;
-      }
-    } catch (error) {
-      console.error('Failed to check connected account:', error);
-    }
+    window.ethereum.on('accountsChanged', updateButtonState);
+    window.ethereum.on('chainChanged', updateButtonState);
   }
 });
