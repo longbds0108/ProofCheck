@@ -1,10 +1,53 @@
 /* Mock ProofCheck contract for testing without GenLayer deployment. */
 
 const mockContractState = {
-  claims: [],
-  reviews: [],
+  claims: [
+    {
+      claim_id: 'pc-25-047',
+      submitter: '0xf9642b695d4ddf58599c953a791f94c2e96b6a57',
+      claim_type: 'Repository is open source',
+      claim_text: 'Our smart contract is open source',
+      repo_url: 'https://github.com/aurora-labs/core',
+      created_at: '2025-09-14T10:30:00Z',
+      latest_review_id: 'REV-1',
+      active: true,
+    }
+  ],
+  reviews: [
+    {
+      claim_id: 'pc-25-047',
+      review_id: 'REV-1',
+      version: 1,
+      status: 'supported',
+      reason: 'Repository is public and contains relevant open-source license.',
+      evidence_excerpt: 'MIT License found in repository',
+      created_at: '2025-09-14T10:30:00Z',
+      review_kind: 'initial',
+      finalized: true,
+    }
+  ],
+  evidence: [
+    {
+      claim_id: 'pc-25-047',
+      review_id: 'REV-1',
+      url: 'https://github.com/aurora-labs/core',
+      excerpt: 'Public repository accessible',
+      content_hash: 'abc123def456',
+      captured_at: '2025-09-14T10:30:00Z',
+      relation: 'supporting',
+    },
+    {
+      claim_id: 'pc-25-047',
+      review_id: 'REV-1',
+      url: 'https://github.com/aurora-labs/core/blob/main/LICENSE',
+      excerpt: 'MIT License',
+      content_hash: 'xyz789uvw012',
+      captured_at: '2025-09-14T10:30:00Z',
+      relation: 'supporting',
+    }
+  ],
   payments: [],
-  nextClaimNumber: 1,
+  nextClaimNumber: 2,
   verificationFee: 1n * 10n**18n, // 1 GEN
   treasuryAddress: '0xf9642b695d4ddf58599c953a791f94c2e96b6a57',
   paused: false,
@@ -20,6 +63,40 @@ const mockContract = {
       total_source_rewards_wei: '0',
       paused: String(mockContractState.paused),
     };
+  },
+
+  async getClaim(claimId) {
+    const claim = mockContractState.claims.find(c => c.claim_id === claimId);
+    if (!claim) {
+      return {
+        claim_id: claimId,
+        submitter: '0x0000000000000000000000000000000000000000',
+        claim_type: 'Unknown',
+        claim_text: 'Claim not found',
+        repo_url: '',
+        created_at: new Date().toISOString(),
+        latest_review_id: '',
+        active: 'False',
+      };
+    }
+    return {
+      claim_id: claim.claim_id,
+      submitter: claim.submitter,
+      claim_type: claim.claim_type,
+      claim_text: claim.claim_text,
+      repo_url: claim.repo_url,
+      created_at: claim.created_at,
+      latest_review_id: claim.latest_review_id,
+      active: String(claim.active),
+    };
+  },
+
+  async getReviews(claimId) {
+    return mockContractState.reviews.filter(r => r.claim_id === claimId);
+  },
+
+  async getEvidence(claimId) {
+    return mockContractState.evidence.filter(e => e.claim_id === claimId);
   },
 
   async verifyClaim(claimType, claim, repoUrl, evidenceUrls, evidenceHashes, evidenceExcerpts, author, reward) {
