@@ -1,8 +1,9 @@
 window.PROOFCHECK_CONFIG = {
-  network: 'studionet',
-  chainId: 61999,
+  network: 'studio-next',
+  chainId: 61997,
   contractAddress: '',
   treasuryAddress: '0xf9642b695d4ddf58599c953a791f94c2e96b6a57',
-  contractExplorer: 'https://studio.genlayer.com/contracts',
-  sdkUrl: 'https://esm.sh/genlayer-js?bundle'
+  contractExplorer: 'https://explorer-studio-dev.genlayer.com/',
+  rpcUrl: 'https://studio-next.genlayer.com/api',
+  sdkUrl: 'https://esm.sh/genlayer-js@2.0.0-rc.1?bundle'
 };
