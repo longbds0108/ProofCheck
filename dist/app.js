@@ -85,6 +85,7 @@
         button.classList.add('is-connected');
       });
 
+      updateWalletDisplay();
       await refreshPaymentPolicy();
       return state.account;
     } catch (error) {
@@ -374,6 +375,71 @@
       });
     });
   });
+
+  // Wallet Button & Menu
+  var walletMenu = document.getElementById('wallet-menu');
+  var walletButton = document.getElementById('wallet-button');
+  var walletAddress = document.getElementById('wallet-address');
+  var walletAddressCopy = document.getElementById('wallet-address-copy');
+  var copyAddressBtn = document.getElementById('copy-address');
+  var disconnectBtn = document.getElementById('disconnect-btn');
+
+  // Toggle wallet menu
+  if (walletButton) {
+    walletButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      walletMenu.classList.toggle('active');
+    });
+  }
+
+  // Close menu when clicking outside
+  document.addEventListener('click', function() {
+    if (walletMenu && walletMenu.classList.contains('active')) {
+      walletMenu.classList.remove('active');
+    }
+  });
+
+  // Copy address to clipboard
+  if (copyAddressBtn) {
+    copyAddressBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var addressToCopy = state.account || walletAddressCopy.textContent;
+      navigator.clipboard.writeText(addressToCopy).then(function() {
+        var originalText = copyAddressBtn.textContent;
+        copyAddressBtn.textContent = '✓ Copied!';
+        setTimeout(function() {
+          copyAddressBtn.innerHTML = '<span id="wallet-address-copy">' + addressToCopy + '</span>';
+        }, 2000);
+      });
+    });
+  }
+
+  // Disconnect wallet
+  if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      state.account = '';
+      state.client = null;
+      state.readClient = null;
+      if (walletMenu) walletMenu.style.display = 'none';
+      if (document.getElementById('start-check-btn')) {
+        document.getElementById('start-check-btn').style.display = 'inline-flex';
+      }
+      console.log('Wallet disconnected');
+    });
+  }
+
+  // Update wallet display
+  function updateWalletDisplay() {
+    if (state.account) {
+      walletAddress.textContent = state.account.slice(0, 6) + '…' + state.account.slice(-4);
+      walletAddressCopy.textContent = state.account;
+      if (document.getElementById('start-check-btn')) {
+        document.getElementById('start-check-btn').style.display = 'none';
+      }
+      if (walletMenu) walletMenu.style.display = 'inline-block';
+    }
+  }
 
   // Wallet Modal Setup
   var walletModal = document.getElementById('wallet-modal');
