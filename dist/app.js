@@ -29,33 +29,63 @@
     try {
       await loadSdk();
       if (!window.ethereum) throw new Error('MetaMask not found. Please install MetaMask extension.');
+
       var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       if (!accounts || !accounts[0]) throw new Error('No wallet account was returned. Please check MetaMask.');
       state.account = accounts[0];
+      console.log('Connected account:', state.account);
 
-      // Get the correct chain object
+      // Try to find the correct chain - studio_next is the correct one for GenLayer
       var chain = null;
-      if (state.chains.studio_next) {
+      console.log('Available chains:', Object.keys(state.chains));
+
+      // Try different chain names
+      if (state.chains['studio-next']) {
+        chain = state.chains['studio-next'];
+        console.log('Using studio-next chain');
+      } else if (state.chains.studio_next) {
         chain = state.chains.studio_next;
+        console.log('Using studio_next chain');
       } else if (state.chains.studionet) {
         chain = state.chains.studionet;
+        console.log('Using studionet chain (fallback)');
       } else {
-        throw new Error('GenLayer chain not available. Available chains: ' + Object.keys(state.chains).join(', '));
+        // Try to find any available chain that's not mainnet
+        var availableChains = Object.keys(state.chains).filter(function(k) {
+          return k.indexOf('main') === -1 && k.indexOf('ethereum') === -1;
+        });
+        if (availableChains.length > 0) {
+          chain = state.chains[availableChains[0]];
+          console.log('Using fallback chain:', availableChains[0]);
+        }
       }
 
-      state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
-      console.log('Created client with chain:', chain.name || 'unknown');
-
-      if (state.client.connect) {
-        await state.client.connect();
+      if (!chain) {
+        throw new Error('GenLayer Studio Next chain not found. Available: ' + Object.keys(state.chains).join(', '));
       }
 
-      $$('[data-wallet-connect]').forEach(function (button) { button.textContent = shortAddress(state.account); button.classList.add('is-connected'); });
+      // Create client with explicit chain
+      state.client = state.sdk.createClient({
+        chain: chain,
+        account: state.account,
+        provider: window.ethereum
+      });
+      console.log('Client created successfully');
+
+      $$('[data-wallet-connect]').forEach(function (button) {
+        button.textContent = shortAddress(state.account);
+        button.classList.add('is-connected');
+      });
+
       await refreshPaymentPolicy();
       return state.account;
     } catch (error) {
-      console.error('Wallet connection failed:', error);
-      alert('Connection failed: ' + error.message);
+      console.error('Wallet connection error:', error);
+      var errorMsg = 'Wallet connection failed';
+      if (error.message) {
+        errorMsg += ': ' + error.message;
+      }
+      alert(errorMsg);
       throw error;
     }
   }
