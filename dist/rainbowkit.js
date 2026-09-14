@@ -112,10 +112,16 @@ async function updateButtonState() {
   }
 }
 
-// Attach to button
+// Attach to button (homepage only)
 document.addEventListener('DOMContentLoaded', async function () {
   const button = document.querySelector('[data-start-check]');
   if (!button) return;
+
+  // Hide button on child pages (only show on homepage)
+  if (window.location.pathname !== '/') {
+    button.hidden = true;
+    return;
+  }
 
   button.addEventListener('click', async function (event) {
     event.preventDefault();
