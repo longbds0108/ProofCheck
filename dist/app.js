@@ -258,6 +258,20 @@
     });
   });
 
+  // Handle "Start Check" button on homepage
+  var startCheckBtn = document.getElementById('start-check-btn');
+  if (startCheckBtn) {
+    startCheckBtn.addEventListener('click', async function (event) {
+      event.preventDefault();
+      try {
+        await connectWallet();
+        window.location.href = '/submit/';
+      } catch (error) {
+        alert('Wallet connection failed: ' + error.message);
+      }
+    });
+  }
+
   $$('[data-quick-start]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
       event.preventDefault();
