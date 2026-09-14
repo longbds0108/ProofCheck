@@ -242,8 +242,7 @@
         <nav class="nav-links" aria-label="Primary navigation">
           <a href="/how-it-works/">How it works</a>
           <a href="/records/pc-25-047/">Claim detail</a>
-          <button class="button ghost wallet-button" type="button" data-wallet-connect>Connect wallet</button>
-          <a class="button" href="/submit/">Check a claim <span class="arrow">↗</span></a>
+          <button class="button" type="button" data-start-check>Start Check <span class="arrow">↗</span></button>
         </nav>
       </div>
     </header>
@@ -307,6 +306,9 @@
 
     <footer><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">A public record for public claims.</span></div></footer>
 
+    <div id="rainbowkit-root" aria-hidden="true"></div>
     <script src="/config.js"></script><script src="/app.js"></script>
+    <link rel="stylesheet" href="https://esm.sh/@rainbow-me/rainbowkit@2.2.11/styles.css" />
+    <script type="module" src="/rainbowkit.js"></script>
   </body>
 </html>
