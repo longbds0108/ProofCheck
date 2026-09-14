@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ProofCheck documentation and technical overview." />
+    <title>Documentation — ProofCheck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/app.css" />
+    <style>
+      .docs-toc { position: sticky; top: 20px; background: rgba(18, 42, 33, .38); border: 1px solid rgba(200,255,77,.18); border-radius: 12px; padding: 20px; margin-bottom: 40px; }
+      .docs-toc h3 { margin: 0 0 15px; font: 600 14px "Space Grotesk", sans-serif; color: var(--lime); }
+      .docs-toc a { display: block; padding: 6px 0; color: #a1ada6; font-size: 14px; text-decoration: none; transition: color .2s; }
+      .docs-toc a:hover { color: var(--lime); }
+      .docs-section { margin-bottom: 60px; padding-bottom: 40px; border-bottom: 1px solid rgba(177, 209, 193, 0.18); }
+      .docs-section:last-child { border-bottom: none; }
+      .docs-section h2 { font: 600 32px "Space Grotesk", sans-serif; margin: 0 0 20px; letter-spacing: -.03em; }
+      .docs-section h3 { font: 600 20px "Space Grotesk", sans-serif; margin: 30px 0 15px; }
+      .docs-section p { color: #c0cbc3; line-height: 1.65; margin-bottom: 15px; }
+      .code-block { background: #04100e; border: 1px solid rgba(177, 209, 193, 0.18); border-radius: 8px; padding: 15px; font-family: "DM Mono", monospace; font-size: 13px; color: var(--lime); overflow-x: auto; margin: 20px 0; }
+      .doc-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+      .doc-table th, .doc-table td { border: 1px solid rgba(177, 209, 193, 0.18); padding: 12px; text-align: left; font-size: 14px; }
+      .doc-table th { background: rgba(25, 58, 43, .38); color: var(--lime); font-weight: 600; }
+      .doc-table td { color: #c0cbc3; }
+      .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0; }
+      .feature-card { background: rgba(18, 42, 33, .38); border: 1px solid rgba(177, 209, 193, 0.18); border-radius: 12px; padding: 20px; }
+      .feature-card strong { color: var(--lime); }
+      .flow-diagram { background: #04100e; border: 1px solid rgba(177, 209, 193, 0.18); border-radius: 8px; padding: 20px; margin: 20px 0; }
+      .flow-step { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-start; }
+      .flow-step::before { content: attr(data-step); display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; background: var(--lime); color: #10200f; border-radius: 50%; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+      .flow-step-text { flex: 1; }
+      .flow-step-text strong { color: var(--ink); background: var(--lime); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+      .status-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+      .status-table th, .status-table td { border: 1px solid rgba(177, 209, 193, 0.18); padding: 15px; text-align: left; }
+      .status-table th { background: rgba(25, 58, 43, .38); color: var(--lime); }
+      .status-supported { color: #4ade80; }
+      .status-insufficient { color: #facc15; }
+      .status-refuted { color: #ff6b58; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header"><div class="shell nav"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>ProofCheck</a><nav class="nav-links" aria-label="Primary navigation"><a href="/submit/">Submit claim</a><a href="/records/pc-25-047/">Claim detail</a><a href="/how-it-works/">How it works</a><a class="button" href="/submit/">Start Check <span class="arrow">→</span></a></nav></div></header>
+
+    <main class="shell page">
+      <div class="breadcrumbs"><a href="/">ProofCheck</a><span>/</span><span>Documentation</span></div>
+      <div class="page-head"><div><div class="eyebrow">DOCUMENTATION</div><h1>How ProofCheck Works</h1></div><p class="page-intro">Technical overview and user guide for the ProofCheck platform.</p></div>
+
+      <div style="display: grid; grid-template-columns: 1fr 3fr; gap: 40px; margin-top: 40px;">
+        <aside>
+          <div class="docs-toc">
+            <h3>Contents</h3>
+            <a href="#overview">Overview</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#user-flow">User Flow</a>
+            <a href="#statuses">Result Statuses</a>
+            <a href="#evidence">Evidence & Verification</a>
+            <a href="#rebuttal">Rebuttal System</a>
+            <a href="#technical">Technical Details</a>
+            <a href="#faq">FAQ</a>
+          </div>
+        </aside>
+
+        <article>
+          <!-- OVERVIEW -->
+          <section class="docs-section" id="overview">
+            <h2>Overview</h2>
+            <p><strong>ProofCheck</strong> is a decentralized application for verifying public claims about GitHub repositories. Instead of simply trusting a claim, ProofCheck creates an immutable record of the evidence, the verification process, and the validator consensus.</p>
+
+            <h3>Key Features</h3>
+            <div class="feature-grid">
+              <div class="feature-card">
+                <strong>📝 Public Claims</strong>
+                <p>Submit verifiable statements about GitHub repositories.</p>
+              </div>
+              <div class="feature-card">
+                <strong>🔐 Evidence Fingerprinting</strong>
+                <p>SHA-256 hashes capture content at the moment of review.</p>
+              </div>
+              <div class="feature-card">
+                <strong>🗳️ Validator Consensus</strong>
+                <p>GenLayer validators independently verify and reach consensus.</p>
+              </div>
+              <div class="feature-card">
+                <strong>⛓️ On-Chain Record</strong>
+                <p>All results stored immutably on GenLayer blockchain.</p>
+              </div>
+              <div class="feature-card">
+                <strong>💬 Rebuttals</strong>
+                <p>Challenge results with counter-evidence without deleting history.</p>
+              </div>
+              <div class="feature-card">
+                <strong>📊 Review Trail</strong>
+                <p>Complete history of all reviews remains visible.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ARCHITECTURE -->
+          <section class="docs-section" id="architecture">
+            <h2>Architecture</h2>
+            <p>ProofCheck operates as a decentralized system across three layers:</p>
+
+            <h3>1. Frontend Layer</h3>
+            <p>User interface for submitting claims, viewing results, and creating rebuttals. Built with vanilla JavaScript, HTML, and CSS.</p>
+
+            <h3>2. Smart Contract Layer</h3>
+            <p>Intelligent contract deployed on GenLayer that receives claims and triggers validator consensus.</p>
+            <div class="code-block">
+Contract: ProofCheck on GenLayer Studio Next
+Network: GenLayer (chainId: 61997)
+Address: 0x12F1f411f0338754F55422f29C43c70319d05080
+            </div>
+
+            <h3>3. Blockchain Layer</h3>
+            <p>GenLayer blockchain provides validator consensus, on-chain storage, and immutability guarantees.</p>
+          </section>
+
+          <!-- USER FLOW -->
+          <section class="docs-section" id="user-flow">
+            <h2>User Flow</h2>
+
+            <h3>Submitting a Claim</h3>
+            <div class="flow-diagram">
+              <div class="flow-step" data-step="1">
+                <div class="flow-step-text"><strong>Submit Claim</strong><br/>User fills form with claim type, statement, repository URL, and evidence URLs.</div>
+              </div>
+              <div class="flow-step" data-step="2">
+                <div class="flow-step-text"><strong>Capture Evidence</strong><br/>Frontend fetches evidence URLs and computes SHA-256 hashes of content.</div>
+              </div>
+              <div class="flow-step" data-step="3">
+                <div class="flow-step-text"><strong>Connect Wallet</strong><br/>User connects MetaMask wallet for transaction signing.</div>
+              </div>
+              <div class="flow-step" data-step="4">
+                <div class="flow-step-text"><strong>Estimate Fee</strong><br/>Frontend estimates GenLayer network fees based on claim complexity.</div>
+              </div>
+              <div class="flow-step" data-step="5">
+                <div class="flow-step-text"><strong>Pay & Submit</strong><br/>User pays 1 GEN verification fee + network fee, transaction submitted.</div>
+              </div>
+              <div class="flow-step" data-step="6">
+                <div class="flow-step-text"><strong>Consensus</strong><br/>GenLayer validators independently verify and reach consensus on verdict.</div>
+              </div>
+              <div class="flow-step" data-step="7">
+                <div class="flow-step-text"><strong>On-Chain Storage</strong><br/>Result stored immutably with timestamp and evidence hashes.</div>
+              </div>
+              <div class="flow-step" data-step="8">
+                <div class="flow-step-text"><strong>Display Result</strong><br/>Frontend reads result from blockchain and displays to user.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- STATUSES -->
+          <section class="docs-section" id="statuses">
+            <h2>Result Statuses</h2>
+            <p>Each claim receives one of three verdicts from validator consensus:</p>
+
+            <table class="status-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Meaning</th>
+                  <th>Example</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="status-supported">✅ SUPPORTED</span></td>
+                  <td>Public evidence fits the wording of the claim at review time.</td>
+                  <td>Repository is public, contains relevant code, and has MIT License.</td>
+                </tr>
+                <tr>
+                  <td><span class="status-insufficient">⚠️ INSUFFICIENT</span></td>
+                  <td>Sources are missing, inaccessible, ambiguous, or not specific enough.</td>
+                  <td>Repository found but license requirements unclear or conflicting.</td>
+                </tr>
+                <tr>
+                  <td><span class="status-refuted">❌ REFUTED</span></td>
+                  <td>Evidence directly contradicts the wording of the claim.</td>
+                  <td>Repository is private or licensed under proprietary terms.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- EVIDENCE -->
+          <section class="docs-section" id="evidence">
+            <h2>Evidence & Verification</h2>
+
+            <h3>Evidence Capture</h3>
+            <p>When you submit a claim, ProofCheck captures:</p>
+            <ul style="color: #c0cbc3; line-height: 1.8;">
+              <li><strong>URL:</strong> Direct link to the evidence source</li>
+              <li><strong>SHA-256 Hash:</strong> Cryptographic fingerprint of content at capture time</li>
+              <li><strong>Excerpt:</strong> First 320 characters of the content (for quick reference)</li>
+              <li><strong>Timestamp:</strong> When the evidence was captured</li>
+            </ul>
+
+            <h3>Validator Verification</h3>
+            <p>GenLayer validators independently:</p>
+            <ol style="color: #c0cbc3; line-height: 1.8; padding-left: 20px;">
+              <li>Fetch each evidence URL</li>
+              <li>Compare content with the claim statement</li>
+              <li>Assess whether evidence supports, contradicts, or is insufficient for the claim</li>
+              <li>Vote on the verdict</li>
+            </ol>
+
+            <h3>Consensus Decision</h3>
+            <p>The majority vote among validators becomes the on-chain verdict. This ensures no single validator controls the outcome.</p>
+          </section>
+
+          <!-- REBUTTAL -->
+          <section class="docs-section" id="rebuttal">
+            <h2>Rebuttal System</h2>
+            <p>ProofCheck allows anyone to challenge a result by submitting counter-evidence:</p>
+
+            <h3>How Rebuttals Work</h3>
+            <ol style="color: #c0cbc3; line-height: 1.8; padding-left: 20px;">
+              <li>View a claim detail page</li>
+              <li>Scroll to "Rebuttal" section</li>
+              <li>Provide a counter-evidence URL (different evidence that contradicts the current result)</li>
+              <li>Explain what should be revisited</li>
+              <li>Pay verification fee + submit</li>
+              <li>New review is added to history</li>
+              <li>Original review remains visible (never deleted)</li>
+            </ol>
+
+            <h3>No Deletion of History</h3>
+            <p>When a rebuttal is successful, the new verdict is added to the review history—the old verdict isn't removed. This creates a transparent audit trail showing how consensus changed over time.</p>
+          </section>
+
+          <!-- TECHNICAL -->
+          <section class="docs-section" id="technical">
+            <h2>Technical Details</h2>
+
+            <h3>Smart Contract Methods</h3>
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Type</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>verify_open_source_claim()</code></td>
+                  <td>write.payable</td>
+                  <td>Submit a claim for verification</td>
+                </tr>
+                <tr>
+                  <td><code>submit_rebuttal()</code></td>
+                  <td>write.payable</td>
+                  <td>Challenge a claim with counter-evidence</td>
+                </tr>
+                <tr>
+                  <td><code>get_payment_policy()</code></td>
+                  <td>view</td>
+                  <td>Read verification fee and contract status</td>
+                </tr>
+                <tr>
+                  <td><code>get_claim()</code></td>
+                  <td>view</td>
+                  <td>Retrieve claim details by ID</td>
+                </tr>
+                <tr>
+                  <td><code>get_reviews()</code></td>
+                  <td>view</td>
+                  <td>Get all verdicts for a claim</td>
+                </tr>
+                <tr>
+                  <td><code>get_evidence()</code></td>
+                  <td>view</td>
+                  <td>Retrieve all evidence for a claim</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Fee Structure</h3>
+            <div class="code-block">
+Verification Fee: 1 GEN (goes to ProofCheck treasury)
+Network Fee: ~0.1-0.5 GEN (paid to GenLayer validators)
+Total: ~1.1-1.5 GEN per claim submission
+            </div>
+
+            <h3>Network Information</h3>
+            <div class="code-block">
+Network: GenLayer Studio Next
+Chain ID: 61997
+RPC: https://studio-next.genlayer.com/api
+Explorer: https://explorer-studio-dev.genlayer.com/
+            </div>
+          </section>
+
+          <!-- FAQ -->
+          <section class="docs-section" id="faq">
+            <h2>Frequently Asked Questions</h2>
+
+            <h3>Who decides the verdict?</h3>
+            <p>GenLayer validators reach consensus through independent verification. No single person or organization controls the outcome.</p>
+
+            <h3>Can the verdict be changed?</h3>
+            <p>Yes, through rebuttals. New evidence can lead to new reviews, which may change the consensus. All historical verdicts remain visible.</p>
+
+            <h3>Is this a permanent certification?</h3>
+            <p>No. ProofCheck records a snapshot of evidence at a specific moment in time. Repositories change, licenses change—the claim remains true only for the evidence that was verified.</p>
+
+            <h3>What if validators disagree?</h3>
+            <p>Majority vote wins. Dissenting validators' opinions are recorded on-chain for transparency.</p>
+
+            <h3>Why do I have to pay?</h3>
+            <p>The 1 GEN verification fee funds the ProofCheck treasury and incentivizes honest claims (spam becomes expensive). Network fees compensate GenLayer validators for their work.</p>
+
+            <h3>Can I get my fee back if I disagree with the verdict?</h3>
+            <p>No. The fee is paid for the verification service. If you disagree, submit a rebuttal with better evidence.</p>
+
+            <h3>How long does verification take?</h3>
+            <p>Consensus typically takes 1-2 blocks (~1-2 minutes on GenLayer). Results are visible immediately in the UI once consensus is reached.</p>
+
+            <h3>What claim types are supported?</h3>
+            <p>Currently MVP supports: "Repository is open source" and "Repository has a usable license". More claim types coming in future versions.</p>
+          </section>
+
+          <section style="background: rgba(200,255,77,.08); border: 1px solid rgba(200,255,77,.2); border-radius: 12px; padding: 30px; margin-top: 60px; text-align: center;">
+            <h3 style="margin-top: 0;">Ready to verify a claim?</h3>
+            <p style="color: #c0cbc3; margin-bottom: 20px;">Submit your first claim and help build a transparent record of public evidence.</p>
+            <a class="button" href="/submit/">Start a proof check <span class="arrow">→</span></a>
+          </section>
+        </article>
+      </div>
+    </main>
+
+    <footer class="footer"><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">Documentation</span></div></footer>
+    <script src="/config.js"></script><script src="/app.js"></script>
+  </body>
+</html>
