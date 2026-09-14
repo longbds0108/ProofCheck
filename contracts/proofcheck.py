@@ -3,8 +3,7 @@
 from genlayer import *
 
 
-@gl.contract
-class ProofCheck:
+class ProofCheck(gl.Contract):
     owner: Address
     treasury: Address
     paused: bool
