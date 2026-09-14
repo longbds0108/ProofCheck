@@ -97,18 +97,13 @@
   function updatePaymentTotal() {
     var form = $('[data-payment-form]');
     if (!form) return;
-    var reward = Math.max(0, Number($('#source-reward', form).value) || 0);
     var baseFee = state.feeWei ? Number(state.feeWei) / 1e18 : 1;
-    setText('[data-source-reward]', reward.toFixed(2).replace(/\.00$/, '') + ' GEN', form);
-    setText('[data-payment-total]', (baseFee + reward).toFixed(2).replace(/\.00$/, '') + ' GEN before network fee', form);
+    setText('[data-payment-total]', baseFee.toFixed(2).replace(/\.00$/, '') + ' GEN before network fee', form);
     setText('[data-network-fee]', 'Estimate after wallet connection', form);
     setText('[data-payment-fee-label]', baseFee.toFixed(2).replace(/\.00$/, '') + ' GEN', form);
   }
 
   async function submitPaidReview(form) {
-    var reward = genToWei($('#source-reward', form).value);
-    var author = $('#source-author', form).value.trim();
-    if (reward > 0n && !/^0x[a-fA-F0-9]{40}$/.test(author)) throw new Error('Add a valid source author wallet to include a reward.');
     var evidenceList = [$('#evidence-1', form).value.trim(), $('#evidence-2', form).value.trim()].filter(Boolean);
     var evidenceUrls = evidenceList.join('\n');
     var evidenceNote = $('#evidence-note', form).value.trim();
@@ -125,8 +120,8 @@
         evidenceUrls,
         captured.hashes.join('\n'),
         captured.excerpts.join('\n'),
-        author,
-        reward
+        '',
+        0n
       );
       var txId = 'MOCK-' + Date.now();
       setText('[data-tx-id]', txId, form);
@@ -141,8 +136,8 @@
     var write = {
       address: config.contractAddress,
       functionName: 'verify_open_source_claim',
-      args: [$('#claim-type', form).value, $('#claim', form).value.trim(), $('#repo', form).value.trim(), evidenceUrls, captured.hashes.join('\n'), captured.excerpts.join('\n'), author, reward],
-      value: state.feeWei + reward
+      args: [$('#claim-type', form).value, $('#claim', form).value.trim(), $('#repo', form).value.trim(), evidenceUrls, captured.hashes.join('\n'), captured.excerpts.join('\n'), '', 0n],
+      value: state.feeWei
     };
     message(form, 'Estimating the GenLayer network fee…');
     var estimate = await state.client.estimateTransactionFeesForWrite(write);
