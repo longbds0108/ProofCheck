@@ -113,6 +113,9 @@
       .wallet-dropdown .divider { height: 1px; background: var(--line); }
       .wallet-dropdown .disconnect { color: #ff6b58; }
       .wallet-dropdown .disconnect:hover { background: rgba(255, 107, 88, .1); }
+      .wallet-display { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; color: var(--ink); background: rgba(200,255,77,.12); border: 1px solid rgba(200,255,77,.3); border-radius: 999px; font-size: 13px; font-family: "DM Mono", monospace; }
+      .wallet-display::before { content: "●"; color: var(--lime); font-size: 8px; }
+      .wallet-display:hover { background: rgba(200,255,77,.18); border-color: rgba(200,255,77,.5); cursor: pointer; }
 
       .hero { position: relative; min-height: 660px; display: grid; grid-template-columns: 1fr 1fr; gap: 78px; align-items: center; padding: 88px 0 92px; }
       .hero-copy { max-width: 650px; position: relative; z-index: 1; }
@@ -272,12 +275,12 @@
           <a href="/records/pc-25-047/">Claim detail</a>
           <button class="button" type="button" id="start-check-btn">Start Check <span class="arrow">→</span></button>
           <div class="wallet-menu" id="wallet-menu" style="display: none;">
-            <button class="button ghost" type="button" id="wallet-button">
-              <span id="wallet-address">Connect</span>
+            <button class="wallet-display" type="button" id="wallet-button" title="Click to disconnect">
+              <span id="wallet-address">0x...</span>
             </button>
             <div class="wallet-dropdown">
               <div style="padding: 12px 16px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .1em;">Connected</div>
-              <button id="copy-address" style="font-family: 'DM Mono', monospace; font-size: 12px;">
+              <button id="copy-address" style="font-family: 'DM Mono', monospace; font-size: 12px; width: 100%; text-align: left;">
                 <span id="wallet-address-copy">0x...</span>
               </button>
               <div class="divider"></div>
