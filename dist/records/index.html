@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Danh sách hồ sơ kiểm chứng công khai trên ProofCheck." />
+    <title>Hồ sơ kiểm chứng — ProofCheck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header class="site-header"><div class="shell nav"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>ProofCheck</a><nav class="nav-links" aria-label="Điều hướng chính"><a href="/">Trang chủ</a><a href="/submit/">Tạo hồ sơ</a><a class="button" href="/submit/">Kiểm tra claim <span class="arrow">↗</span></a></nav></div></header>
+    <main class="shell page"><div class="breadcrumbs"><a href="/">ProofCheck</a><span>/</span><span>Hồ sơ kiểm chứng</span></div>
+      <div class="page-head"><div><div class="eyebrow">PUBLIC EVIDENCE RECORDS</div><h1>Những gì đã được kiểm tra.</h1></div><p class="page-intro">Mỗi hồ sơ là một snapshot: claim, nguồn công khai, thời điểm kiểm tra và lý do của kết quả.</p></div>
+      <div class="filters" role="group" aria-label="Lọc trạng thái"><button class="filter is-active" data-filter="all">Tất cả · 12</button><button class="filter" data-filter="supported">Có căn cứ · 07</button><button class="filter" data-filter="insufficient">Chưa đủ · 03</button><button class="filter" data-filter="refuted">Bị phản bác · 02</button></div>
+      <section class="surface record-list" aria-label="Danh sách hồ sơ">
+        <a class="record-item" data-record-status="supported" href="/records/pc-25-047/"><div><span class="record-status">Có căn cứ</span><div class="record-id">PC–25–047</div></div><div><span class="record-title">Core contract đã mã nguồn mở</span><div class="record-note">github.com/aurora-labs/core · MIT License</div></div><span class="record-date">14 SEP 2026</span><span class="record-chevron">↗</span></a>
+        <a class="record-item" data-record-status="insufficient" href="/records/pc-25-046/"><div><span class="record-status warn">Chưa đủ thông tin</span><div class="record-id">PC–25–046</div></div><div><span class="record-title">SDK đã được audit độc lập</span><div class="record-note">Báo cáo có link nhưng thiếu phạm vi và phiên bản</div></div><span class="record-date">13 SEP 2026</span><span class="record-chevron">↗</span></a>
+        <a class="record-item" data-record-status="refuted" href="/records/pc-25-045/"><div><span class="record-status bad">Bị phản bác</span><div class="record-id">PC–25–045</div></div><div><span class="record-title">Kho mã nguồn được cập nhật công khai</span><div class="record-note">Nguồn gửi vào không chứa mã nguồn liên quan</div></div><span class="record-date">12 SEP 2026</span><span class="record-chevron">↗</span></a>
+        <a class="record-item" data-record-status="supported" href="/records/pc-25-044/"><div><span class="record-status">Có căn cứ</span><div class="record-id">PC–25–044</div></div><div><span class="record-title">Repo có giấy phép sử dụng rõ ràng</span><div class="record-note">Apache-2.0 được công bố ở root của repository</div></div><span class="record-date">11 SEP 2026</span><span class="record-chevron">↗</span></a>
+      </section>
+    </main>
+    <footer class="footer"><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">Public claims · public trail</span></div></footer>
+    <script src="/app.js"></script>
+  </body>
+</html>
