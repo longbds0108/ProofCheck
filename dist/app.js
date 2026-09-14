@@ -472,36 +472,32 @@
     });
   }
 
-  // Wallet connection handlers
-  function setupWalletButton(buttonId, walletType) {
-    var btn = document.getElementById(buttonId);
-    if (btn) {
-      btn.addEventListener('click', async function() {
-        try {
-          hideWalletModal();
+  // Wallet connection handlers - all use EIP-1193
+  var walletOptions = document.querySelectorAll('[data-wallet]');
+  walletOptions.forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var walletType = btn.getAttribute('data-wallet');
+      try {
+        hideWalletModal();
 
-          if (walletType === 'walletconnect') {
-            // WalletConnect support - show message for now
-            alert('WalletConnect support coming soon! Please use MetaMask or another web3 wallet.');
-            showWalletModal();
-            return;
-          }
-
-          await connectWallet();
-          window.location.href = '/submit/';
-        } catch (error) {
-          console.error('Connection failed:', error);
-          alert('Failed to connect: ' + error.message);
+        if (walletType === 'walletconnect') {
+          // WalletConnect support - show info for now
+          alert('WalletConnect support coming soon! For now, use MetaMask or another EIP-1193 compatible wallet.');
           showWalletModal();
+          return;
         }
-      });
-    }
-  }
 
-  setupWalletButton('connect-metamask', 'metamask');
-  setupWalletButton('connect-walletconnect', 'walletconnect');
-  setupWalletButton('connect-coinbase', 'coinbase');
-  setupWalletButton('connect-other', 'other');
+        // All other wallets use EIP-1193
+        console.log('Connecting with wallet type:', walletType);
+        await connectWallet(walletType);
+        window.location.href = '/submit/';
+      } catch (error) {
+        console.error('Connection failed:', error);
+        alert('Failed to connect ' + walletType + ': ' + error.message);
+        showWalletModal();
+      }
+    });
+  });
 
   // Handle "Start Check" button on homepage
   var startCheckBtn = document.getElementById('start-check-btn');
