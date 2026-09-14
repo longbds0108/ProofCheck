@@ -13,6 +13,6 @@ document.querySelectorAll('[data-demo-form]').forEach(function (form) {
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     var message = form.querySelector('[data-form-message]');
-    if (message) message.textContent = form.dataset.success || '✓ Đã lưu bản nháp. Bạn có thể tiếp tục ở bước tiếp theo.';
+    if (message) message.textContent = form.dataset.success || '✓ Draft saved. You can continue to the next step.';
   });
 });
