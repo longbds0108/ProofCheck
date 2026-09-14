@@ -6,14 +6,14 @@ import {
   RainbowKitProvider,
   useChainModal,
   useConnectModal,
-} from 'https://esm.sh/@rainbow-me/rainbowkit@2.2.11?deps=react@18.3.1,react-dom@18.3.1,wagmi@2.12.0,viem@2.21.55,@tanstack/react-query@5.59.16';
+} from 'https://esm.sh/@rainbow-me/rainbowkit@2.2.11?deps=@tanstack/react-query@5.59.16,react-dom@18.3.1,react@18.3.1,viem@2.21.55,wagmi@2.12.0';
 import {
   WagmiProvider,
   createConfig,
   http,
   injected,
   useAccount,
-} from 'https://esm.sh/wagmi@2.12.0?deps=react@18.3.1,react-dom@18.3.1,viem@2.21.55,@tanstack/react-query@5.59.16';
+} from 'https://esm.sh/wagmi@2.12.0?deps=@tanstack/react-query@5.59.16,react-dom@18.3.1,react@18.3.1,viem@2.21.55';
 import { QueryClient, QueryClientProvider } from 'https://esm.sh/@tanstack/react-query@5.59.16?deps=react@18.3.1';
 
 const studionet = {
