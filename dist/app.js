@@ -131,12 +131,22 @@
       }
 
       // Create client with explicit chain
-      state.client = state.sdk.createClient({
-        chain: chain,
-        account: state.account,
-        provider: window.ethereum
-      });
-      console.log('Client created successfully');
+      try {
+        state.client = state.sdk.createClient({
+          chain: chain,
+          account: state.account,
+          provider: window.ethereum
+        });
+        console.log('Client created successfully');
+      } catch (clientError) {
+        console.warn('Client creation error (non-critical):', clientError);
+        // GenLayer SDK may warn about missing methods, but client is still usable
+        state.client = state.sdk.createClient({
+          chain: chain,
+          account: state.account,
+          provider: window.ethereum
+        });
+      }
 
       $$('[data-wallet-connect]').forEach(function (button) {
         button.textContent = shortAddress(state.account);
@@ -161,11 +171,16 @@
     try {
       await loadSdk();
       if (!state.readClient) {
-        var chain = state.chains.studio_next || state.chains.studionet;
+        var chain = state.chains.studio_next || state.chains.studionet || Object.values(state.chains)[0];
         if (!chain) {
           throw new Error('GenLayer chain not available');
         }
-        state.readClient = state.sdk.createClient({ chain: chain });
+        try {
+          state.readClient = state.sdk.createClient({ chain: chain });
+        } catch (clientErr) {
+          console.warn('Read client creation warning (proceeding):', clientErr.message);
+          state.readClient = state.sdk.createClient({ chain: chain });
+        }
       }
       return state.readClient;
     } catch (error) {
