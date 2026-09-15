@@ -1,172 +1,128 @@
-# v1.0.0 - Ready for Bradbury Testnet (chain 4221)
-# ProofCheck: Verify GitHub open-source claims
+# v1.0.0 - ProofCheck: Verify GitHub open-source claims on GenLayer
 # { "Depends": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng" }
 
 import genlayer as gl
 from genlayer.types import *
+
 import json
 import typing
 
 
 class ProofCheck(gl.contract.Contract):
-    """Decentralized verification of GitHub open-source claims using GenLayer"""
+    claim_text: str
+    repo_url: str
+    evidence_urls: str
+    claim_status: str
+    claim_reason: str
 
-    owner: Address
-    treasury_address: Address
-    paused: bool
-    verification_fee: u256
-
-    def __init__(self):
-        self.owner = gl.message.sender_address
-        self.treasury_address = Address("0xF9642B695D4DDf58599c953a791F94c2e96b6a57")
-        self.paused = False
-        self.verification_fee = u256(10**18)
-
-    @gl.public.view
-    def get_payment_policy(self) -> dict[str, typing.Any]:
-        """Get current payment policy"""
-        return {
-            "verification_fee_wei": str(self.verification_fee),
-            "treasury_address": str(self.treasury_address),
-            "paused": self.paused
-        }
-
-    @gl.public.view
-    def get_claim(self, claim_id: str) -> dict[str, typing.Any]:
-        """Get claim details - placeholder for full implementation"""
-        return {}
-
-    @gl.public.view
-    def get_reviews(self, claim_id: str) -> list[dict[str, typing.Any]]:
-        """Get reviews for a claim - placeholder for full implementation"""
-        return []
-
-    @gl.public.view
-    def get_evidence(self, claim_id: str) -> list[dict[str, typing.Any]]:
-        """Get evidence for a claim - placeholder for full implementation"""
-        return []
-
-    @gl.public.write.payable
-    def verify_open_source_claim(
-        self,
-        claim_type: str,
-        claim: str,
-        repo_url: str,
-        evidence_urls: str,
-        evidence_hashes: str,
-        evidence_excerpts: str,
-        source_author_address: str,
-        reward_amount: u256,
-    ) -> dict[str, typing.Any]:
+    def __init__(self, claim_text: str, repo_url: str, evidence_urls: str):
         """
-        Submit a claim about GitHub repository being open source.
-        GenLayer validators will assess evidence and reach consensus.
+        Initialize a ProofCheck claim verification instance.
+
+        Args:
+            claim_text (str): The claim about the GitHub repository.
+            repo_url (str): The GitHub repository URL.
+            evidence_urls (str): Newline-separated URLs of evidence.
+
+        Attributes:
+            claim_text (str): The claim statement being verified.
+            repo_url (str): The GitHub repository URL.
+            evidence_urls (str): Evidence URLs for validation.
+            claim_status (str): Verification result (supported/insufficient/refuted).
+            claim_reason (str): Explanation of the verification result.
         """
-        if self.paused:
-            raise gl.vm.UserError("Contract is paused for maintenance")
+        self.claim_text = claim_text
+        self.repo_url = repo_url
+        self.evidence_urls = evidence_urls
+        self.claim_status = "pending"
+        self.claim_reason = "Waiting for validator assessment"
 
-        value = gl.message.value
-        if value < self.verification_fee:
-            raise gl.vm.UserError("Insufficient verification fee")
+    @gl.public.write
+    def verify_claim(self) -> typing.Any:
+        """
+        Submit claim for GenLayer validator assessment.
+        Validators will fetch evidence URLs and determine claim status.
+        """
+        if self.claim_status != "pending":
+            raise gl.vm.UserError("Claim already verified")
 
-        # GenLayer validators will assess the claim
-        def validate_claim() -> typing.Any:
+        claim_text = self.claim_text
+        repo_url = self.repo_url
+        evidence_urls = self.evidence_urls
+
+        def assess_claim() -> typing.Any:
+            # Fetch evidence from web
+            evidence_content = ""
+            for url in evidence_urls.split('\n'):
+                url = url.strip()
+                if url:
+                    try:
+                        content = gl.nondet.web.render(url, mode="text")
+                        evidence_content += f"\n\nURL: {url}\nContent: {content[:500]}"
+                    except Exception as e:
+                        evidence_content += f"\n\nURL: {url}\nError: {str(e)}"
+
+            # AI assessment prompt
             task = f"""
 Assess if this GitHub repository claim is supported by the evidence.
 
-Claim: {claim}
+Claim: {claim_text}
 Repository: {repo_url}
-Evidence URLs: {evidence_urls}
 
-Check:
-1. Is repository publicly accessible?
-2. Does it contain relevant code?
-3. Has a clear open-source license?
+Evidence content:
+{evidence_content}
 
-Respond with only valid JSON:
-{{"status": "supported|insufficient|refuted", "reason": "explanation", "confidence": 0.0-1.0}}
+For an open-source claim, check:
+1. Is the repository publicly accessible?
+2. Does it contain relevant implementation code?
+3. Is there a clear, usable open-source license (MIT, Apache, GPL, etc.)?
+
+Respond with ONLY valid JSON format:
+{{
+    "status": str,
+    "reason": str
+}}
+
+Where status must be one of: "supported", "insufficient", or "refuted"
+The reason should briefly explain the assessment.
+
+It is mandatory to respond only with JSON, nothing else.
+This must be parsable without any formatting prefix or suffix.
             """
-            result_text = gl.nondet.exec_prompt(task)
-            result_text = result_text.replace("```json", "").replace("```", "").strip()
+
+            result_text = gl.nondet.exec_prompt(task).replace("```json", "").replace("```", "")
+            print(f"Validator assessment: {result_text}")
             return json.loads(result_text)
 
-        # Use GenLayer consensus to validate
-        result = gl.eq_principle.strict_eq(validate_claim)
+        # Use GenLayer consensus mechanism
+        result_json = gl.eq_principle.strict_eq(assess_claim)
 
+        # Store verification result
+        self.claim_status = result_json.get("status", "insufficient")
+        self.claim_reason = result_json.get("reason", "Unable to assess evidence")
+
+        return result_json
+
+    @gl.public.view
+    def get_verification_result(self) -> dict[str, typing.Any]:
+        """
+        Retrieve the claim verification result.
+        """
         return {
-            "claim_type": claim_type,
-            "claim": claim,
-            "status": result.get("status", "insufficient"),
-            "reason": result.get("reason", "Unable to assess"),
-            "validated": True
+            "claim": self.claim_text,
+            "repository": self.repo_url,
+            "status": self.claim_status,
+            "reason": self.claim_reason,
         }
 
-    @gl.public.write.payable
-    def submit_rebuttal(
-        self,
-        claim_id: str,
-        opposing_urls: str,
-        opposing_hashes: str,
-        opposing_excerpts: str,
-        source_author_address: str,
-        reward_amount: u256,
-    ) -> dict[str, typing.Any]:
+    @gl.public.view
+    def get_claim_details(self) -> dict[str, typing.Any]:
         """
-        Submit rebuttal/counter-evidence to existing claim.
-        Creates new review without erasing history.
+        Get detailed claim information.
         """
-        if self.paused:
-            raise gl.vm.UserError("Contract is paused for maintenance")
-
-        value = gl.message.value
-        if value < self.verification_fee:
-            raise gl.vm.UserError("Insufficient verification fee")
-
-        # Validate counter-evidence with GenLayer
-        def validate_rebuttal() -> typing.Any:
-            task = f"""
-Assess this counter-evidence against the original claim.
-
-Counter-Evidence URLs: {opposing_urls}
-Counter-Excerpts: {opposing_excerpts}
-
-Does this evidence refute the original claim?
-
-Respond with only valid JSON:
-{{"status": "supported|insufficient|refuted", "reason": "explanation"}}
-            """
-            result_text = gl.nondet.exec_prompt(task)
-            result_text = result_text.replace("```json", "").replace("```", "").strip()
-            return json.loads(result_text)
-
-        result = gl.eq_principle.strict_eq(validate_rebuttal)
-
         return {
-            "claim_id": claim_id,
-            "status": result.get("status", "insufficient"),
-            "reason": result.get("reason", "Rebuttal assessed"),
-            "review_created": True
+            "claim_text": self.claim_text,
+            "repo_url": self.repo_url,
+            "evidence_urls": self.evidence_urls,
+            "verification_status": self.claim_status,
         }
-
-    @gl.public.write
-    def set_fee(self, new_fee: u256) -> None:
-        """Update verification fee (owner only)"""
-        if gl.message.sender_address != self.owner:
-            raise gl.vm.UserError("Only owner can set fee")
-        if new_fee == u256(0):
-            raise gl.vm.UserError("Fee must be greater than 0")
-        self.verification_fee = new_fee
-
-    @gl.public.write
-    def pause_contract(self) -> None:
-        """Pause contract (owner only)"""
-        if gl.message.sender_address != self.owner:
-            raise gl.vm.UserError("Only owner can pause")
-        self.paused = True
-
-    @gl.public.write
-    def resume_contract(self) -> None:
-        """Resume contract (owner only)"""
-        if gl.message.sender_address != self.owner:
-            raise gl.vm.UserError("Only owner can resume")
-        self.paused = False
