@@ -28,6 +28,7 @@
       var modules = await Promise.race([Promise.all([sdkPromise, chainsPromise]), timeout]);
       state.sdk = modules[0];
       state.chains = modules[1];
+      console.log('SDK loaded successfully');
     } catch (error) {
       console.error('SDK load error:', error);
       throw new Error('Failed to load GenLayer SDK. Please check your internet connection: ' + error.message);
@@ -35,9 +36,41 @@
     return state;
   }
 
+  async function testRpc(rpcUrl) {
+    try {
+      var response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 })
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      var data = await response.json();
+      if (data.result) {
+        console.log('RPC working:', rpcUrl, 'Chain:', data.result);
+        return true;
+      }
+    } catch (error) {
+      console.warn('RPC test failed:', rpcUrl, error.message);
+    }
+    return false;
+  }
+
+  async function findWorkingRpc() {
+    var rpcUrls = config.rpcUrls || [config.rpcUrl];
+    for (var i = 0; i < rpcUrls.length; i++) {
+      if (await testRpc(rpcUrls[i])) {
+        config.rpcUrl = rpcUrls[i];
+        return rpcUrls[i];
+      }
+    }
+    console.warn('No working RPC found, using default');
+    return config.rpcUrl;
+  }
+
   async function connectWallet(walletType) {
     try {
       await loadSdk();
+      await findWorkingRpc();
 
       // Check for wallet availability
       if (!window.ethereum) {
