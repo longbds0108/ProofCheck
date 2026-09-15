@@ -13,8 +13,36 @@
     sdk: null,
     chains: null,
     client: null,
+    redirectAfterConnect: '',
   };
   var announcedProviders = [];
+  var WALLET_SESSION_KEY = 'proofcheck:wallet-session';
+
+  function persistWalletSession() {
+    try {
+      if (!state.account) {
+        window.sessionStorage.removeItem(WALLET_SESSION_KEY);
+        return;
+      }
+      window.sessionStorage.setItem(WALLET_SESSION_KEY, JSON.stringify({
+        account: state.account,
+        chainId: state.chainId,
+      }));
+    } catch (error) {
+      // Session storage can be unavailable in privacy-restricted contexts.
+    }
+  }
+
+  function restoreWalletSession() {
+    try {
+      var stored = JSON.parse(window.sessionStorage.getItem(WALLET_SESSION_KEY) || 'null');
+      if (!stored || !stored.account) return;
+      state.account = stored.account;
+      state.chainId = stored.chainId == null ? null : Number(stored.chainId);
+    } catch (error) {
+      // Session storage can be unavailable in privacy-restricted contexts.
+    }
+  }
 
   function rememberAnnouncedProvider(event) {
     var detail = event && event.detail;
@@ -180,6 +208,7 @@
     var correctNetwork = state.chainId === targetChainId();
     var buttons = $$('[data-wallet-connect]');
     buttons.forEach(function (button) {
+      if (button.hasAttribute('data-start-check')) return;
       button.classList.toggle('is-connected', connected && correctNetwork);
       button.textContent = connected && correctNetwork
         ? shortAddress(state.account)
@@ -223,10 +252,12 @@
     provider.on('accountsChanged', function (accounts) {
       state.account = accounts && accounts[0] ? accounts[0] : '';
       if (!state.account) state.chainId = null;
+      persistWalletSession();
       renderWalletState();
     });
     provider.on('chainChanged', function (chainId) {
       state.chainId = typeof chainId === 'string' ? parseInt(chainId, 16) : Number(chainId);
+      persistWalletSession();
       renderWalletState();
     });
   }
@@ -246,12 +277,16 @@
       state.provider = provider;
       state.account = accounts[0];
       state.chainId = await readChainId(provider);
+      persistWalletSession();
       state.listenersAttached = false;
       attachProviderListeners(provider);
       renderWalletState();
       if (state.chainId !== targetChainId()) return false;
+      var redirect = state.redirectAfterConnect;
+      state.redirectAfterConnect = '';
       hideModal();
       window.dispatchEvent(new CustomEvent('proofcheck:wallet-connected', { detail: getWalletState() }));
+      if (redirect) window.location.href = redirect;
       return true;
     } catch (error) {
       if (error && error.code === 4001) setStatus(walletType === 'metamask'
@@ -292,10 +327,14 @@
       }
     }
     state.chainId = await readChainId(state.provider);
+    persistWalletSession();
     renderWalletState();
     if (state.chainId === targetChainId()) {
+      var redirect = state.redirectAfterConnect;
+      state.redirectAfterConnect = '';
       hideModal();
       window.dispatchEvent(new CustomEvent('proofcheck:wallet-connected', { detail: getWalletState() }));
+      if (redirect) window.location.href = redirect;
       return true;
     }
     return false;
@@ -306,6 +345,7 @@
     state.account = '';
     state.chainId = null;
     state.listenersAttached = false;
+    persistWalletSession();
     renderWalletState();
     setStatus('Wallet disconnected from this dApp. The wallet permission remains available in your wallet.', 'info');
   }
@@ -659,7 +699,7 @@
   async function ensureWalletForWrite() {
     if (!window.ProofCheckWallet) throw new Error('Wallet connection is unavailable. Reload the page and try again.');
     var wallet = window.ProofCheckWallet.getState();
-    if (!wallet.isConnected) {
+    if (!wallet.isConnected || !wallet.provider) {
       await window.ProofCheckWallet.connect('other');
       wallet = window.ProofCheckWallet.getState();
     }
@@ -834,12 +874,23 @@
   }
 
   function bindUI() {
+    restoreWalletSession();
     ensureWalletButton();
     ensureModal();
+    renderWalletState();
     if (typeof window !== 'undefined') window.dispatchEvent(new Event('eip6963:requestProvider'));
 
     $$('[data-wallet-connect]').forEach(function (button) {
-      button.addEventListener('click', function () {
+      button.addEventListener('click', function (event) {
+        if (button.hasAttribute('data-start-check')) {
+          event.preventDefault();
+          var destination = button.getAttribute('href') || '/submit/';
+          if (state.account && state.chainId === targetChainId()) {
+            window.location.href = destination;
+            return;
+          }
+          state.redirectAfterConnect = destination;
+        }
         showModal();
       });
     });
@@ -851,11 +902,17 @@
     });
 
     var closeButton = $('#wallet-modal-close');
-    if (closeButton) closeButton.addEventListener('click', hideModal);
+    if (closeButton) closeButton.addEventListener('click', function () {
+      state.redirectAfterConnect = '';
+      hideModal();
+    });
 
     var modal = $('#wallet-modal');
     if (modal) modal.addEventListener('click', function (event) {
-      if (event.target === modal) hideModal();
+      if (event.target === modal) {
+        state.redirectAfterConnect = '';
+        hideModal();
+      }
     });
 
     var switchButton = $('#wallet-switch-network');
@@ -898,7 +955,7 @@
       });
     });
 
-    if (window.ethereum && typeof window.ethereum.request === 'function') {
+    var restoreConnectedWallet = function () {
       findProvider('other').then(async function (provider) {
         if (!provider) return;
         var accounts = await provider.request({ method: 'eth_accounts' });
@@ -909,7 +966,9 @@
         attachProviderListeners(state.provider);
         renderWalletState();
       }).catch(function () { /* Wallet may be locked or unavailable. */ });
-    }
+    };
+    restoreConnectedWallet();
+    if (!window.ethereum && !announcedProviders.length) window.setTimeout(restoreConnectedWallet, 100);
 
     var repoFromQuery = new URLSearchParams(window.location.search).get('repo');
     var evidenceField = $('#evidence-1');
