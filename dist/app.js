@@ -10,6 +10,9 @@
     account: '',
     chainId: null,
     listenersAttached: false,
+    sdk: null,
+    chains: null,
+    client: null,
   };
 
   var $ = function (selector, root) {
@@ -273,6 +276,103 @@
     };
   }
 
+  function setFormMessage(form, text, isError) {
+    var message = $('[data-form-message]', form);
+    if (!message) return;
+    message.textContent = text;
+    message.classList.toggle('is-error', Boolean(isError));
+  }
+
+  async function ensureWalletForWrite() {
+    if (!window.ProofCheckWallet) throw new Error('Wallet connection is unavailable. Reload the page and try again.');
+    var wallet = window.ProofCheckWallet.getState();
+    if (!wallet.isConnected) {
+      await window.ProofCheckWallet.connect('other');
+      wallet = window.ProofCheckWallet.getState();
+    }
+    if (!wallet.isConnected) throw new Error('Connect your wallet before submitting a claim.');
+    if (!wallet.isCorrectNetwork) {
+      await window.ProofCheckWallet.switchNetwork();
+      wallet = window.ProofCheckWallet.getState();
+    }
+    if (!wallet.isCorrectNetwork) throw new Error('Switch to ' + targetNetworkName() + ' before submitting.');
+    return wallet;
+  }
+
+  async function loadGenLayerClient(wallet) {
+    if (!config.contractAddress) throw new Error('ProofCheck contract is not deployed on this testnet yet.');
+    if (config.contractVersion !== '1.1.0') throw new Error('The configured contract is outdated. Deploy ProofCheck v1.1.0 first.');
+    if (!state.sdk) {
+      var modules = await Promise.all([
+        import(config.sdkUrl || 'https://esm.sh/genlayer-js@2.0.0-rc.1?bundle'),
+        import(config.chainsUrl || 'https://esm.sh/genlayer-js/chains?bundle'),
+      ]);
+      state.sdk = modules[0].default || modules[0];
+      state.chains = modules[1].default || modules[1];
+    }
+    var chain = state.chains[config.network]
+      || state.chains.studio_next
+      || state.chains['studio-next']
+      || state.chains.studionet;
+    if (!chain) throw new Error('GenLayer chain configuration was not found.');
+    state.client = state.sdk.createClient({
+      chain: chain,
+      account: wallet.account,
+      provider: wallet.provider,
+    });
+    return state.client;
+  }
+
+  async function submitClaim(form) {
+    var wallet = await ensureWalletForWrite();
+    var client = await loadGenLayerClient(wallet);
+    var claimType = $('#claim-type', form).value.trim();
+    var claimText = $('#claim', form).value.trim();
+    var repoUrl = $('#repo', form).value.trim();
+    var evidenceUrls = [$('#evidence-1', form).value.trim(), $('#evidence-2', form).value.trim()]
+      .filter(Boolean)
+      .join('\n');
+
+    if (!claimType || !claimText || !repoUrl || !evidenceUrls) {
+      throw new Error('Complete the claim, repository, and at least one evidence URL.');
+    }
+    if (!/^https:\/\/github\.com\//.test(repoUrl)) {
+      throw new Error('Repository must be an https://github.com URL.');
+    }
+
+    var write = {
+      address: config.contractAddress,
+      functionName: 'submit_claim',
+      args: [claimType, claimText, repoUrl, evidenceUrls],
+      value: 0n,
+    };
+
+    setFormMessage(form, 'Preparing the free testnet submission…');
+    var feeOptions = null;
+    if (typeof client.estimateTransactionFeesForWrite === 'function') {
+      var estimate = await client.estimateTransactionFeesForWrite(write);
+      if (estimate && estimate.distribution && estimate.feeValue !== undefined) {
+        feeOptions = { distribution: estimate.distribution, feeValue: estimate.feeValue };
+      }
+    }
+    setFormMessage(form, 'Confirm the transaction in your wallet…');
+    var txId = feeOptions
+      ? await client.writeContract(Object.assign({}, write, { fees: feeOptions }))
+      : await client.writeContract(write);
+    var txLabel = typeof txId === 'string' ? txId : String(txId);
+    setFormMessage(form, 'Claim submitted. Waiting for GenLayer finalization…');
+    var receipt = typeof client.waitForFinalization === 'function'
+      ? await client.waitForFinalization({ hash: txId })
+      : null;
+    if (state.sdk.isSuccessful && receipt && !state.sdk.isSuccessful(receipt)) {
+      throw new Error('Transaction finalized with an execution error.');
+    }
+    var txIdElement = $('[data-tx-id]', form);
+    if (txIdElement) txIdElement.textContent = txLabel;
+    setFormMessage(form, '✓ Claim finalized on ' + targetNetworkName() + '.');
+    return receipt || txId;
+  }
+
   function bindUI() {
     ensureWalletButton();
     ensureModal();
@@ -316,11 +416,24 @@
       });
     });
 
-    $$('[data-payment-form], [data-rebuttal-form]').forEach(function (form) {
+    $$('[data-payment-form]').forEach(function (form) {
       form.addEventListener('submit', function (event) {
         event.preventDefault();
-        var message = $('[data-form-message]', form);
-        if (message) message.textContent = 'Wallet connection is ready. Claim submission will be wired next.';
+        var submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton && submitButton.disabled) return;
+        if (submitButton) submitButton.disabled = true;
+        submitClaim(form).catch(function (error) {
+          setFormMessage(form, '× ' + error.message, true);
+        }).finally(function () {
+          if (submitButton) submitButton.disabled = false;
+        });
+      });
+    });
+
+    $$('[data-rebuttal-form]').forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        setFormMessage(form, 'Rebuttals will be enabled after claim submission is live.');
       });
     });
 

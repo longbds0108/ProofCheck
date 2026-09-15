@@ -107,9 +107,9 @@
             <h3>2. Smart Contract Layer</h3>
             <p>Intelligent contract deployed on GenLayer that receives claims and triggers validator consensus.</p>
             <div class="code-block">
-Contract: ProofCheck on GenLayer Studio Next
-Network: GenLayer (chainId: 61997)
-Address: 0x12F1f411f0338754F55422f29C43c70319d05080
+Contract: ProofCheck v1.1.0
+Network: GenLayer Studionet (chainId: 61999)
+Address: configured after testnet deployment
             </div>
 
             <h3>3. Blockchain Layer</h3>
@@ -126,22 +126,22 @@ Address: 0x12F1f411f0338754F55422f29C43c70319d05080
                 <div class="flow-step-text"><strong>Submit Claim</strong><br/>User fills form with claim type, statement, repository URL, and evidence URLs.</div>
               </div>
               <div class="flow-step" data-step="2">
-                <div class="flow-step-text"><strong>Capture Evidence</strong><br/>Frontend fetches evidence URLs and computes SHA-256 hashes of content.</div>
+                <div class="flow-step-text"><strong>Attach Evidence</strong><br/>User supplies public evidence URLs for validators to inspect during consensus.</div>
               </div>
               <div class="flow-step" data-step="3">
                 <div class="flow-step-text"><strong>Connect Wallet</strong><br/>User connects MetaMask wallet for transaction signing.</div>
               </div>
               <div class="flow-step" data-step="4">
-                <div class="flow-step-text"><strong>Estimate Fee</strong><br/>Frontend estimates GenLayer network fees based on claim complexity.</div>
+                <div class="flow-step-text"><strong>Estimate Network Fee</strong><br/>The dApp requests the current GenLayer network fee estimate before signing.</div>
               </div>
               <div class="flow-step" data-step="5">
-                <div class="flow-step-text"><strong>Pay & Submit</strong><br/>User pays 1 GEN verification fee + network fee, transaction submitted.</div>
+                <div class="flow-step-text"><strong>Submit for Free</strong><br/>The verification fee is 0 GEN on testnet; a separate network fee may still apply.</div>
               </div>
               <div class="flow-step" data-step="6">
                 <div class="flow-step-text"><strong>Consensus</strong><br/>GenLayer validators independently verify and reach consensus on verdict.</div>
               </div>
               <div class="flow-step" data-step="7">
-                <div class="flow-step-text"><strong>On-Chain Storage</strong><br/>Result stored immutably with timestamp and evidence hashes.</div>
+                <div class="flow-step-text"><strong>On-Chain Storage</strong><br/>Claim, submitter, evidence URLs, status, and validator reason are stored on-chain.</div>
               </div>
               <div class="flow-step" data-step="8">
                 <div class="flow-step-text"><strong>Display Result</strong><br/>Frontend reads result from blockchain and displays to user.</div>
@@ -187,12 +187,12 @@ Address: 0x12F1f411f0338754F55422f29C43c70319d05080
             <h2>Evidence & Verification</h2>
 
             <h3>Evidence Capture</h3>
-            <p>When you submit a claim, ProofCheck captures:</p>
+            <p>When you submit a claim, ProofCheck stores:</p>
             <ul style="color: #c0cbc3; line-height: 1.8;">
               <li><strong>URL:</strong> Direct link to the evidence source</li>
-              <li><strong>SHA-256 Hash:</strong> Cryptographic fingerprint of content at capture time</li>
-              <li><strong>Excerpt:</strong> First 320 characters of the content (for quick reference)</li>
-              <li><strong>Timestamp:</strong> When the evidence was captured</li>
+              <li><strong>Claim:</strong> The statement and selected claim type</li>
+              <li><strong>Submitter:</strong> The connected wallet address</li>
+              <li><strong>Result:</strong> Status and validator explanation after consensus</li>
             </ul>
 
             <h3>Validator Verification</h3>
@@ -219,9 +219,9 @@ Address: 0x12F1f411f0338754F55422f29C43c70319d05080
               <li>Scroll to "Rebuttal" section</li>
               <li>Provide a counter-evidence URL (different evidence that contradicts the current result)</li>
               <li>Explain what should be revisited</li>
-              <li>Pay verification fee + submit</li>
-              <li>New review is added to history</li>
-              <li>Original review remains visible (never deleted)</li>
+              <li>Submit a new claim with the counter-evidence</li>
+              <li>New review is added as a separate claim</li>
+              <li>Original claim remains visible (never deleted)</li>
             </ol>
 
             <h3>No Deletion of History</h3>
@@ -243,19 +243,14 @@ Address: 0x12F1f411f0338754F55422f29C43c70319d05080
               </thead>
               <tbody>
                 <tr>
-                  <td><code>verify_open_source_claim()</code></td>
-                  <td>write.payable</td>
+                  <td><code>submit_claim()</code></td>
+                  <td>write</td>
                   <td>Submit a claim for verification</td>
                 </tr>
                 <tr>
-                  <td><code>submit_rebuttal()</code></td>
-                  <td>write.payable</td>
-                  <td>Challenge a claim with counter-evidence</td>
-                </tr>
-                <tr>
-                  <td><code>get_payment_policy()</code></td>
+                  <td><code>get_claim_count()</code></td>
                   <td>view</td>
-                  <td>Read verification fee and contract status</td>
+                  <td>Read the number of submitted claims</td>
                 </tr>
                 <tr>
                   <td><code>get_claim()</code></td>
@@ -263,29 +258,24 @@ Address: 0x12F1f411f0338754F55422f29C43c70319d05080
                   <td>Retrieve claim details by ID</td>
                 </tr>
                 <tr>
-                  <td><code>get_reviews()</code></td>
+                  <td><code>get_verification_result()</code></td>
                   <td>view</td>
-                  <td>Get all verdicts for a claim</td>
-                </tr>
-                <tr>
-                  <td><code>get_evidence()</code></td>
-                  <td>view</td>
-                  <td>Retrieve all evidence for a claim</td>
+                  <td>Read the concise verdict for a claim</td>
                 </tr>
               </tbody>
             </table>
 
             <h3>Fee Structure</h3>
             <div class="code-block">
-Verification Fee: 1 GEN (goes to ProofCheck treasury)
-Network Fee: ~0.1-0.5 GEN (paid to GenLayer validators)
-Total: ~1.1-1.5 GEN per claim submission
+Verification Fee: 0 GEN on testnet
+Network Fee: Quoted by GenLayer before signing
+Total: Verification fee plus any network fee shown by the wallet
             </div>
 
             <h3>Network Information</h3>
             <div class="code-block">
-Network: GenLayer Studio Next
-Chain ID: 61997
+Network: GenLayer Studionet
+Chain ID: 61999
 RPC: https://studio-next.genlayer.com/api
 Explorer: https://explorer-studio-dev.genlayer.com/
             </div>
@@ -307,11 +297,11 @@ Explorer: https://explorer-studio-dev.genlayer.com/
             <h3>What if validators disagree?</h3>
             <p>Majority vote wins. Dissenting validators' opinions are recorded on-chain for transparency.</p>
 
-            <h3>Why do I have to pay?</h3>
-            <p>The 1 GEN verification fee funds the ProofCheck treasury and incentivizes honest claims (spam becomes expensive). Network fees compensate GenLayer validators for their work.</p>
+            <h3>Why might my wallet show a fee?</h3>
+            <p>ProofCheck charges 0 GEN for verification on testnet. GenLayer may still require a separate network or consensus fee to process the transaction.</p>
 
-            <h3>Can I get my fee back if I disagree with the verdict?</h3>
-            <p>No. The fee is paid for the verification service. If you disagree, submit a rebuttal with better evidence.</p>
+            <h3>Can I challenge a verdict?</h3>
+            <p>Rebuttal submissions are planned for a later step. For now, each claim keeps its own transparent result and evidence trail.</p>
 
             <h3>How long does verification take?</h3>
             <p>Consensus typically takes 1-2 blocks (~1-2 minutes on GenLayer). Results are visible immediately in the UI once consensus is reached.</p>
