@@ -283,19 +283,6 @@
     message.classList.toggle('is-error', Boolean(isError));
   }
 
-  async function readPendingNonce(wallet) {
-    if (!wallet || !wallet.provider || typeof wallet.provider.request !== 'function') return null;
-    try {
-      var rawNonce = await wallet.provider.request({
-        method: 'eth_getTransactionCount',
-        params: [wallet.account, 'pending'],
-      });
-      return rawNonce === null || rawNonce === undefined ? null : Number(BigInt(rawNonce));
-    } catch (error) {
-      return null;
-    }
-  }
-
   async function ensureWalletForWrite() {
     if (!window.ProofCheckWallet) throw new Error('Wallet connection is unavailable. Reload the page and try again.');
     var wallet = window.ProofCheckWallet.getState();
@@ -333,6 +320,7 @@
     state.client = state.sdk.createClient({
       chain: chain,
       account: wallet.account,
+      endpoint: config.rpcUrl,
       provider: wallet.provider,
     });
     return state.client;
@@ -361,9 +349,6 @@
       args: [claimType, claimText, repoUrl, evidenceUrls],
       value: 0n,
     };
-    var pendingNonce = await readPendingNonce(wallet);
-    if (pendingNonce !== null) write.nonce = pendingNonce;
-
     setFormMessage(form, 'Preparing the free testnet submission…');
     var feeOptions = null;
     if (typeof client.estimateTransactionFeesForWrite === 'function') {
@@ -382,16 +367,20 @@
       ? await client.writeContract(Object.assign({}, write, { fees: feeOptions }))
       : await client.writeContract(write);
     var txLabel = typeof txId === 'string' ? txId : String(txId);
-    setFormMessage(form, 'Claim submitted. Waiting for GenLayer finalization…');
-    var receipt = typeof client.waitForFinalization === 'function'
-      ? await client.waitForFinalization({ hash: txId })
-      : null;
-    if (state.sdk.isSuccessful && receipt && !state.sdk.isSuccessful(receipt)) {
-      throw new Error('Transaction finalized with an execution error.');
+    var isStudioPreview = Boolean(state.client && state.client.chain && state.client.chain.isStudio);
+    var receipt = null;
+    if (!isStudioPreview && typeof client.waitForFinalization === 'function') {
+      setFormMessage(form, 'Claim submitted. Waiting for GenLayer finalization…');
+      receipt = await client.waitForFinalization({ hash: txId });
+      if (state.sdk.isSuccessful && receipt && !state.sdk.isSuccessful(receipt)) {
+        throw new Error('Transaction finalized with an execution error.');
+      }
     }
     var txIdElement = $('[data-tx-id]', form);
     if (txIdElement) txIdElement.textContent = txLabel;
-    setFormMessage(form, '✓ Claim finalized on ' + targetNetworkName() + '.');
+    setFormMessage(form, isStudioPreview
+      ? '✓ Claim submitted to ' + targetNetworkName() + '. Check Studio Next for consensus progress.'
+      : '✓ Claim finalized on ' + targetNetworkName() + '.');
     return receipt || txId;
   }
 
