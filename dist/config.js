@@ -2,8 +2,9 @@ window.PROOFCHECK_CONFIG = {
   network: 'studioDevnet',
   networkName: 'GenLayer Studio Next',
   chainId: 61997,
-  contractVersion: '1.1.0',
-  contractAddress: '0x32761911D56A00BcB5893D57e290e73243FdFd79',
+  // ProofCheckStudio v0.3.0 deployed and verified in GenLayer Studio Next.
+  contractVersion: 'studio-0.3.0',
+  contractAddress: '0xA2AC2976433d32B42952404f66373fF084678F49',
   nativeCurrencyName: 'GEN',
   nativeCurrencySymbol: 'GEN',
   nativeCurrencyDecimals: 18,

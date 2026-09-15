@@ -335,7 +335,7 @@
 
   async function loadGenLayerClient(wallet) {
     if (!config.contractAddress) throw new Error('ProofCheck contract is not deployed on this testnet yet.');
-    if (config.contractVersion !== '1.1.0') throw new Error('The configured contract is outdated. Deploy ProofCheck v1.1.0 first.');
+    if (config.contractVersion !== 'studio-0.3.0') throw new Error('The configured ProofCheck Studio contract is outdated.');
     if (!state.sdk) {
       var modules = await Promise.all([
         import(config.sdkUrl || 'https://esm.sh/genlayer-js@2.0.0-rc.1?bundle'),
@@ -363,55 +363,29 @@
   async function submitClaim(form) {
     var wallet = await ensureWalletForWrite();
     var client = await loadGenLayerClient(wallet);
-    var claimType = $('#claim-type', form).value.trim();
     var claimText = $('#claim', form).value.trim();
-    var repoUrl = $('#repo', form).value.trim();
-    var evidenceUrls = [$('#evidence-1', form).value.trim(), $('#evidence-2', form).value.trim()]
-      .filter(Boolean)
-      .join('\n');
+    var evidenceUrl = $('#evidence-1', form).value.trim();
 
-    if (!claimType || !claimText || !repoUrl || !evidenceUrls) {
-      throw new Error('Complete the claim, repository, and at least one evidence URL.');
+    if (!claimText || !evidenceUrl) {
+      throw new Error('Complete the claim and add a GitHub evidence URL.');
     }
-    if (!/^https:\/\/github\.com\//.test(repoUrl)) {
-      throw new Error('Repository must be an https://github.com URL.');
+    if (!/^https:\/\/github\.com\//.test(evidenceUrl)) {
+      throw new Error('Evidence must be an https://github.com URL.');
     }
 
     var write = {
       address: config.contractAddress,
       functionName: 'submit_claim',
-      args: [claimType, claimText, repoUrl, evidenceUrls],
+      args: [claimText, evidenceUrl],
       value: 0n,
     };
     setClaimStatus(form, 'not-submitted');
     setFormMessage(form, 'Open your wallet to sign the free testnet submission…');
-    var feeOptions = null;
-    /*
-     * Do not run estimateTransactionFeesForWrite here. On Studio Next it
-     * performs a full sim_estimateTransactionFees call, which can remain
-     * pending and prevents the wallet from ever receiving eth_sendTransaction.
-     * The deterministic fee estimate is enough for this free-verification
-     * flow; the verification fee remains 0 and only the network fee is paid.
-     */
-    if (typeof client.estimateTransactionFees === 'function') {
-      try {
-        var estimate = await client.estimateTransactionFees({});
-        if (estimate && estimate.distribution && estimate.feeValue !== undefined) {
-          feeOptions = {
-            distribution: estimate.distribution,
-            messageAllocations: estimate.messageAllocations,
-            feeValue: estimate.feeValue,
-          };
-        }
-      } catch (error) {
-        var estimationMessage = error && error.message ? error.message : String(error);
-        if (!/sim_getFeeConfig|method not found|not available/i.test(estimationMessage)) throw error;
-      }
-    }
     setFormMessage(form, 'Confirm the transaction in your wallet…');
-    var txId = feeOptions
-      ? await client.writeContract(Object.assign({}, write, { fees: feeOptions }))
-      : await client.writeContract(write);
+    // Studio Next simulates the free testnet fee internally. Calling the fee
+    // estimator first invokes sim_getFeeConfig, which is not exposed by some
+    // Studio RPC versions and prevents the wallet request from being emitted.
+    var txId = await client.writeContract(write);
     var txLabel = typeof txId === 'string' ? txId : String(txId);
     var isStudioPreview = Boolean(state.client && state.client.chain && state.client.chain.isStudio);
     setClaimStatus(form, 'checking');
@@ -507,6 +481,10 @@
         renderWalletState();
       }).catch(function () { /* Wallet may be locked or unavailable. */ });
     }
+
+    var repoFromQuery = new URLSearchParams(window.location.search).get('repo');
+    var evidenceField = $('#evidence-1');
+    if (repoFromQuery && evidenceField && !evidenceField.value) evidenceField.value = repoFromQuery;
   }
 
   window.ProofCheckWallet = {

@@ -107,9 +107,9 @@
             <h3>2. Smart Contract Layer</h3>
             <p>Intelligent contract deployed on GenLayer that receives claims and triggers validator consensus.</p>
             <div class="code-block">
-Contract: ProofCheck v1.1.0
+Contract: ProofCheck Studio v0.3.0
 Network: GenLayer Studio Next (chainId: 61997)
-Address: 0x32761911D56A00BcB5893D57e290e73243FdFd79
+Address: 0xA2AC2976433d32B42952404f66373fF084678F49
             </div>
 
             <h3>3. Blockchain Layer</h3>
@@ -126,7 +126,7 @@ Address: 0x32761911D56A00BcB5893D57e290e73243FdFd79
                 <div class="flow-step-text"><strong>Send a claim</strong><br/>Connect a wallet, write one statement, and add public evidence links.</div>
               </div>
               <div class="flow-step" data-step="2">
-                <div class="flow-step-text"><strong>Pay with GEN</strong><br/>Review the verification and network fees, then sign the transaction.</div>
+                <div class="flow-step-text"><strong>Sign the free testnet transaction</strong><br/>ProofCheck charges 0 GEN during Studio testing; confirm the wallet request when it appears.</div>
               </div>
               <div class="flow-step" data-step="3">
                 <div class="flow-step-text"><strong>GenLayer verifies</strong><br/>The Intelligent Contract reads the links; validators analyze and compare the evidence.</div>
@@ -187,9 +187,9 @@ Address: 0x32761911D56A00BcB5893D57e290e73243FdFd79
             <p>When you submit a claim, ProofCheck stores:</p>
             <ul style="color: #c0cbc3; line-height: 1.8;">
               <li><strong>URL:</strong> Direct link to the evidence source</li>
-              <li><strong>Claim:</strong> The statement and selected claim type</li>
+              <li><strong>Claim:</strong> The statement submitted by the user</li>
               <li><strong>Submitter:</strong> The connected wallet address</li>
-              <li><strong>Result:</strong> Status and validator explanation after consensus</li>
+              <li><strong>Result:</strong> Verdict, short reason, content hash, and timestamp after consensus</li>
             </ul>
 
             <h3>Validator Verification</h3>
@@ -245,28 +245,18 @@ Address: 0x32761911D56A00BcB5893D57e290e73243FdFd79
                   <td>Submit a claim for verification</td>
                 </tr>
                 <tr>
-                  <td><code>get_claim_count()</code></td>
-                  <td>view</td>
-                  <td>Read the number of submitted claims</td>
-                </tr>
-                <tr>
-                  <td><code>get_claim()</code></td>
-                  <td>view</td>
-                  <td>Retrieve claim details by ID</td>
-                </tr>
-                <tr>
-                  <td><code>get_verification_result()</code></td>
-                  <td>view</td>
-                  <td>Read the concise verdict for a claim</td>
+                  <td><code>verifications</code></td>
+                  <td>state</td>
+                  <td>Stores verdict, reason, URL hash, and timestamp</td>
                 </tr>
               </tbody>
             </table>
 
             <h3>Fee Structure</h3>
             <div class="code-block">
-Verification Fee: 0 GEN on testnet
-Network Fee: Quoted by GenLayer before signing
-Total: Verification fee plus any network fee shown by the wallet
+Verification Fee: 0 GEN in Studio
+Network Fee: Simulated by GenLayer Studio
+Total: 0 GEN for this test flow
             </div>
 
             <h3>Network Information</h3>
