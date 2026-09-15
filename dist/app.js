@@ -1,5 +1,14 @@
 /* ProofCheck browser client. The page remains readable without a wallet; writes
    use GenLayerJS only after the user connects an EIP-1193 wallet. */
+
+// Ensure DOM is ready before initializing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
+
+function initApp() {
 (function () {
   var config = window.PROOFCHECK_CONFIG || {};
   var state = { account: '', client: null, readClient: null, sdk: null, chains: null, feeWei: 0n };
@@ -653,3 +662,4 @@
   var params = new URLSearchParams(window.location.search);
   if (params.get('repo') && $('#repo')) $('#repo').value = params.get('repo');
 })();
+} // End initApp()
