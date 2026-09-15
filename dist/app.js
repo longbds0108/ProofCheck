@@ -58,6 +58,24 @@
     return providers[0];
   }
 
+  async function findProvider(walletType) {
+    var preferred = String(config.preferredAccount || '').toLowerCase();
+    var providers = providerList();
+    if (preferred) {
+      for (var index = 0; index < providers.length; index += 1) {
+        try {
+          var accounts = await providers[index].request({ method: 'eth_accounts' });
+          if ((accounts || []).some(function (account) { return String(account).toLowerCase() === preferred; })) {
+            return providers[index];
+          }
+        } catch (error) {
+          // A locked or unavailable provider is skipped.
+        }
+      }
+    }
+    return getProvider(walletType);
+  }
+
   function setStatus(text, kind) {
     var status = $('#wallet-status');
     if (!status) return;
@@ -190,7 +208,7 @@
   }
 
   async function connectWallet(walletType) {
-    var provider = getProvider(walletType);
+    var provider = await findProvider(walletType);
     if (!provider) {
       setStatus(walletType === 'coinbase'
         ? 'Coinbase Wallet was not detected. Use another browser wallet or install Coinbase Wallet.'
@@ -201,8 +219,15 @@
     try {
       var accounts = await provider.request({ method: 'eth_requestAccounts' });
       if (!accounts || !accounts[0]) throw new Error('No account was selected.');
+      var preferred = String(config.preferredAccount || '').toLowerCase();
+      var selectedAccount = preferred
+        ? accounts.find(function (account) { return String(account).toLowerCase() === preferred; })
+        : accounts[0];
+      if (!selectedAccount) {
+        throw new Error('Select wallet account ' + config.preferredAccount + ' in your wallet and try again.');
+      }
       state.provider = provider;
-      state.account = accounts[0];
+      state.account = selectedAccount;
       state.chainId = await readChainId(provider);
       state.listenersAttached = false;
       attachProviderListeners(provider);
@@ -267,11 +292,13 @@
   }
 
   function getWalletState() {
+    var preferred = String(config.preferredAccount || '').toLowerCase();
     return {
       account: state.account,
       chainId: state.chainId,
       isConnected: Boolean(state.account),
       isCorrectNetwork: state.chainId === targetChainId(),
+      isPreferredAccount: !preferred || state.account.toLowerCase() === preferred,
       provider: state.provider,
     };
   }
@@ -325,6 +352,9 @@
       wallet = window.ProofCheckWallet.getState();
     }
     if (!wallet.isConnected) throw new Error('Connect your wallet before submitting a claim.');
+    if (wallet.isPreferredAccount === false) {
+      throw new Error('Select wallet account ' + config.preferredAccount + ' in your wallet before submitting.');
+    }
     if (!wallet.isCorrectNetwork) {
       await window.ProofCheckWallet.switchNetwork();
       wallet = window.ProofCheckWallet.getState();
@@ -472,10 +502,17 @@
     });
 
     if (window.ethereum && typeof window.ethereum.request === 'function') {
-      window.ethereum.request({ method: 'eth_accounts' }).then(async function (accounts) {
+      findProvider('other').then(async function (provider) {
+        if (!provider) return;
+        var accounts = await provider.request({ method: 'eth_accounts' });
         if (!accounts || !accounts[0]) return;
-        state.provider = getProvider('other');
-        state.account = accounts[0];
+        var preferred = String(config.preferredAccount || '').toLowerCase();
+        var selectedAccount = preferred
+          ? accounts.find(function (account) { return String(account).toLowerCase() === preferred; })
+          : accounts[0];
+        if (!selectedAccount) return;
+        state.provider = provider;
+        state.account = selectedAccount;
         state.chainId = await readChainId(state.provider);
         attachProviderListeners(state.provider);
         renderWalletState();
