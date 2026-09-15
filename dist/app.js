@@ -50,7 +50,13 @@
     var providers = providerList();
     if (!providers.length) return null;
     if (walletType === 'metamask') {
-      return providers.find(function (provider) { return provider.isMetaMask && !provider.isCoinbaseWallet; }) || providers[0];
+      return providers.find(function (provider) {
+        return provider.isMetaMask
+          && !provider.isCoinbaseWallet
+          && !provider.isOkxWallet
+          && !provider.isOKExWallet
+          && !provider.isOkx;
+      }) || null;
     }
     if (walletType === 'coinbase') {
       return providers.find(function (provider) { return provider.isCoinbaseWallet; }) || null;
@@ -60,7 +66,17 @@
 
   async function findProvider(walletType) {
     var preferred = String(config.preferredAccount || '').toLowerCase();
-    var providers = providerList();
+    var providers = providerList().filter(function (provider) {
+      if (walletType === 'metamask') {
+        return provider.isMetaMask
+          && !provider.isCoinbaseWallet
+          && !provider.isOkxWallet
+          && !provider.isOKExWallet
+          && !provider.isOkx;
+      }
+      if (walletType === 'coinbase') return provider.isCoinbaseWallet;
+      return true;
+    });
     if (preferred) {
       for (var index = 0; index < providers.length; index += 1) {
         try {
@@ -73,7 +89,7 @@
         }
       }
     }
-    return getProvider(walletType);
+    return providers[0] || null;
   }
 
   function setStatus(text, kind) {
