@@ -19,9 +19,19 @@
     if (state.sdk) return state;
     if (!window.ethereum) throw new Error('Install or unlock an EIP-1193 wallet to continue.');
     var sdkUrl = config.sdkUrl || 'https://esm.sh/genlayer-js?bundle';
-    var modules = await Promise.all([import(sdkUrl), import('https://esm.sh/genlayer-js/chains?bundle')]);
-    state.sdk = modules[0];
-    state.chains = modules[1];
+    try {
+      var sdkPromise = import(sdkUrl);
+      var chainsPromise = import('https://esm.sh/genlayer-js/chains?bundle');
+      var timeout = new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error('SDK import timeout - GenLayer service unavailable')); }, 15000);
+      });
+      var modules = await Promise.race([Promise.all([sdkPromise, chainsPromise]), timeout]);
+      state.sdk = modules[0];
+      state.chains = modules[1];
+    } catch (error) {
+      console.error('SDK load error:', error);
+      throw new Error('Failed to load GenLayer SDK. Please check your internet connection: ' + error.message);
+    }
     return state;
   }
 
@@ -491,7 +501,7 @@
 
   // Update wallet display
   function updateWalletDisplay() {
-    if (state.account) {
+    if (state.account && state.account.length >= 4) {
       if (walletAddress) walletAddress.textContent = state.account.slice(0, 6) + '…' + state.account.slice(-4);
       if (walletAddressCopy) walletAddressCopy.textContent = state.account;
       if (document.getElementById('start-check-btn')) {
