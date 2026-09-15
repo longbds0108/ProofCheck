@@ -58,12 +58,12 @@
       var currentChainId = parseInt(chainIdHex, 16);
       console.log('Current chain ID:', currentChainId);
 
-      // Check if on correct network (61997, 61999, 61919 = GenLayer networks)
-      var VALID_CHAIN_IDS = [61997, 61999, 61919]; // GenLayer networks
-      if (!VALID_CHAIN_IDS.includes(currentChainId)) {
+      // Check if on correct network - contract is on 61997
+      var contractChainId = 61997; // Where contract is deployed
+      if (currentChainId !== contractChainId) {
         state.wrongNetwork = true;
-        console.warn('Wrong network. Current:', currentChainId, 'Expected one of:', VALID_CHAIN_IDS);
-        throw new Error('Please switch to GenLayer network (Chain ID: 61997, 61999, or 61919). Current: ' + currentChainId);
+        console.warn('Wrong network. Current:', currentChainId, 'Expected:', contractChainId);
+        throw new Error('Please switch to GenLayer Chain 61997. Your wallet is on: ' + currentChainId);
       }
 
       state.wrongNetwork = false;
