@@ -126,7 +126,7 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
                 <div class="flow-step-text"><strong>Send a claim</strong><br/>Connect a wallet, write one statement, and add public evidence links.</div>
               </div>
               <div class="flow-step" data-step="2">
-                <div class="flow-step-text"><strong>Sign the free testnet transaction</strong><br/>ProofCheck charges 0 GEN during Studio testing; confirm the wallet request when it appears.</div>
+                <div class="flow-step-text"><strong>Sign the free testnet transaction</strong><br/>ProofCheck charges 0 GEN for verification during Studio testing; your wallet may show a separate protocol or consensus fee.</div>
               </div>
               <div class="flow-step" data-step="3">
                 <div class="flow-step-text"><strong>GenLayer verifies</strong><br/>The Intelligent Contract reads the links; validators analyze and compare the evidence.</div>
@@ -144,6 +144,9 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
               <li><strong>Provisional result:</strong> a result is visible while finalization completes.</li>
               <li><strong>Finalized onchain:</strong> the transaction is finalized and the contract execution succeeded.</li>
             </ul>
+
+            <h3>Claim detail</h3>
+            <p>After finalization, the Claim detail page displays the submitted claim, evidence URL, submitter wallet, validator verdict, short reason, checked time, evidence hash when returned, and transaction hash. The page reads the exact transaction from GenLayer when opened with <code>?live=1&amp;tx=&lt;transaction-hash&gt;</code>; it never labels a pending or reverted transaction as finalized.</p>
           </section>
 
           <!-- STATUSES -->
@@ -208,7 +211,7 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
           <!-- REBUTTAL -->
           <section class="docs-section" id="rebuttal">
             <h2>Rebuttal System</h2>
-            <p>ProofCheck allows anyone to challenge a result by submitting counter-evidence:</p>
+            <p>ProofCheck is designed to let anyone challenge a result with counter-evidence:</p>
 
             <h3>How Rebuttals Work</h3>
             <ol style="color: #c0cbc3; line-height: 1.8; padding-left: 20px;">
@@ -216,8 +219,8 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
               <li>Scroll to "Rebuttal" section</li>
               <li>Provide a counter-evidence URL (different evidence that contradicts the current result)</li>
               <li>Explain what should be revisited</li>
-              <li>Submit a new claim with the counter-evidence</li>
-              <li>New review is added as a separate claim</li>
+              <li>The current UI presents the counter-evidence form; the onchain rebuttal write will be enabled in a later step</li>
+              <li>When enabled, GenLayer creates a new review as a separate claim</li>
               <li>Original claim remains visible (never deleted)</li>
             </ol>
 
@@ -240,30 +243,30 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
               </thead>
               <tbody>
                 <tr>
-                  <td><code>submit_claim()</code></td>
+                  <td><code>submit_claim(claim_text, evidence_url)</code></td>
                   <td>write</td>
                   <td>Submit a claim for verification</td>
                 </tr>
                 <tr>
-                  <td><code>verifications</code></td>
-                  <td>state</td>
-                  <td>Stores verdict, reason, URL hash, and timestamp</td>
+                  <td><code>Claim detail</code></td>
+                  <td>read view</td>
+                  <td>Reads the finalized transaction and displays the submitted data and validator result</td>
                 </tr>
               </tbody>
             </table>
 
             <h3>Fee Structure</h3>
             <div class="code-block">
-Verification Fee: 0 GEN in Studio
-Network Fee: Simulated by GenLayer Studio
-Total: 0 GEN for this test flow
+ProofCheck verification fee: 0 GEN in Studio
+Studio protocol / consensus fee: may be requested separately by the wallet
+Application verification cost: 0 GEN (excluding protocol fee)
             </div>
 
             <h3>Network Information</h3>
             <div class="code-block">
 Network: GenLayer Studio Next
 Chain ID: 61997
-RPC: https://studio-next.genlayer.com/api
+RPC: https://studio-dev.genlayer.com/api
 Explorer: https://explorer-studio-dev.genlayer.com/
             </div>
           </section>
@@ -291,7 +294,7 @@ Explorer: https://explorer-studio-dev.genlayer.com/
             <p>Rebuttal submissions are planned for a later step. For now, each claim keeps its own transparent result and evidence trail.</p>
 
             <h3>How long does verification take?</h3>
-            <p>Consensus typically takes 1-2 blocks (~1-2 minutes on GenLayer). Results are visible immediately in the UI once consensus is reached.</p>
+            <p>Consensus timing can vary on Studio. ProofCheck keeps the claim in Checking or Provisional result until the transaction reaches FINALIZED and execution succeeds; only then does Claim detail show Finalized onchain.</p>
 
             <h3>What claim types are supported?</h3>
             <p>Currently MVP supports: "Repository is open source" and "Repository has a usable license". More claim types coming in future versions.</p>
@@ -307,6 +310,6 @@ Explorer: https://explorer-studio-dev.genlayer.com/
     </main>
 
     <footer class="footer"><div class="shell footer-row"><span><strong>ProofCheck</strong> — evidence, not certainty.</span><span class="mono">Documentation</span></div></footer>
-    <script src="/config.js"></script><script src="/app.js"></script>
+    <script src="/config.js?v=20260915-claimdetail5"></script><script src="/app.js?v=20260915-claimdetail5"></script>
   </body>
 </html>

@@ -14,6 +14,18 @@
     chains: null,
     client: null,
   };
+  var announcedProviders = [];
+
+  function rememberAnnouncedProvider(event) {
+    var detail = event && event.detail;
+    if (!detail || !detail.provider) return;
+    var known = announcedProviders.some(function (item) { return item.provider === detail.provider; });
+    if (!known) announcedProviders.push({ provider: detail.provider, info: detail.info || {} });
+  }
+
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('eip6963:announceProvider', rememberAnnouncedProvider);
+  }
 
   var $ = function (selector, root) {
     return (root || document).querySelector(selector);
@@ -40,43 +52,52 @@
   };
 
   function providerList() {
-    if (!window.ethereum) return [];
-    return window.ethereum.providers && window.ethereum.providers.length
+    var injected = !window.ethereum
+      ? []
+      : window.ethereum.providers && window.ethereum.providers.length
       ? window.ethereum.providers
       : [window.ethereum];
+    return announcedProviders.map(function (item) { return item.provider; }).concat(injected)
+      .filter(function (provider, index, providers) { return provider && providers.indexOf(provider) === index; });
+  }
+
+  function providerMetadata(provider) {
+    var announced = announcedProviders.find(function (item) { return item.provider === provider; });
+    return announced ? announced.info : {};
+  }
+
+  function isOkxProvider(provider) {
+    var info = providerMetadata(provider);
+    return Boolean(provider && (
+      provider.isOkxWallet
+      || provider.isOKXWallet
+      || provider.isOKExWallet
+      || (window.okxwallet && provider === window.okxwallet)
+      || /okx|okex/i.test(String(info.rdns || '') + ' ' + String(info.name || ''))
+    ));
+  }
+
+  function matchesWalletType(provider, walletType) {
+    if (walletType === 'metamask') {
+      var info = providerMetadata(provider);
+      var isAnnouncedMetaMask = info.rdns === 'io.metamask' || /^MetaMask$/i.test(String(info.name || ''));
+      return (isAnnouncedMetaMask || provider.isMetaMask)
+        && !provider.isCoinbaseWallet
+        && !isOkxProvider(provider);
+    }
+    if (walletType === 'coinbase') return provider.isCoinbaseWallet === true;
+    return true;
   }
 
   function getProvider(walletType) {
     var providers = providerList();
     if (!providers.length) return null;
-    if (walletType === 'metamask') {
-      return providers.find(function (provider) {
-        return provider.isMetaMask
-          && !provider.isCoinbaseWallet
-          && !provider.isOkxWallet
-          && !provider.isOKExWallet
-          && !provider.isOkx;
-      }) || null;
-    }
-    if (walletType === 'coinbase') {
-      return providers.find(function (provider) { return provider.isCoinbaseWallet; }) || null;
-    }
-    return providers[0];
+    return providers.find(function (provider) { return matchesWalletType(provider, walletType); }) || null;
   }
 
   async function findProvider(walletType) {
     var preferred = String(config.preferredAccount || '').toLowerCase();
-    var providers = providerList().filter(function (provider) {
-      if (walletType === 'metamask') {
-        return provider.isMetaMask
-          && !provider.isCoinbaseWallet
-          && !provider.isOkxWallet
-          && !provider.isOKExWallet
-          && !provider.isOkx;
-      }
-      if (walletType === 'coinbase') return provider.isCoinbaseWallet;
-      return true;
-    });
+    var providers = providerList().filter(function (provider) { return matchesWalletType(provider, walletType); });
     if (preferred) {
       for (var index = 0; index < providers.length; index += 1) {
         try {
@@ -253,7 +274,9 @@
       window.dispatchEvent(new CustomEvent('proofcheck:wallet-connected', { detail: getWalletState() }));
       return true;
     } catch (error) {
-      if (error && error.code === 4001) setStatus('Connection was rejected in the wallet.', 'error');
+      if (error && error.code === 4001) setStatus(walletType === 'metamask'
+        ? 'MetaMask connection was rejected. Unlock MetaMask and approve this site.'
+        : 'Wallet connection was rejected. Approve the request in your wallet.', 'error');
       else setStatus(error && error.message ? error.message : 'Wallet connection failed.', 'error');
       return false;
     }
@@ -324,6 +347,300 @@
     if (!message) return;
     message.textContent = text;
     message.classList.toggle('is-error', Boolean(isError));
+  }
+
+  var LIVE_CLAIM_STORAGE_KEY = 'proofcheck:finalized-claims';
+
+  function saveLiveClaim(record) {
+    try {
+      var existing = JSON.parse(window.localStorage.getItem(LIVE_CLAIM_STORAGE_KEY) || '[]');
+      if (!Array.isArray(existing)) existing = [];
+      existing = existing.filter(function (item) { return item && item.tx_id !== record.tx_id; });
+      existing.unshift(record);
+      window.localStorage.setItem(LIVE_CLAIM_STORAGE_KEY, JSON.stringify(existing.slice(0, 25)));
+    } catch (error) {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  function loadLiveClaim() {
+    try {
+      var raw = window.localStorage.getItem(LIVE_CLAIM_STORAGE_KEY) || window.localStorage.getItem('proofcheck:last-finalized-claim') || '[]';
+      var stored = JSON.parse(raw);
+      var records = Array.isArray(stored) ? stored : stored ? [stored] : [];
+      var tx = new URLSearchParams(window.location.search).get('tx');
+      return (tx ? records.find(function (item) { return item && item.tx_id === tx; }) : records[0]) || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function readCalldataLeb128(bytes, cursor) {
+    var result = 0n;
+    var shift = 0n;
+    while (cursor.index < bytes.length) {
+      var byte = bytes[cursor.index];
+      cursor.index += 1;
+      result |= BigInt(byte & 0x7f) << shift;
+      if (byte < 128) return result;
+      shift += 7n;
+    }
+    throw new Error('Invalid GenLayer calldata: truncated integer.');
+  }
+
+  function decodeStudioCalldataValue(bytes, cursor) {
+    var encoded = readCalldataLeb128(bytes, cursor);
+    var type = Number(encoded & 7n);
+    var size = encoded >> 3n;
+    if (type === 0) {
+      if (size === 0n) return null;
+      if (size === 1n) return false;
+      if (size === 2n) return true;
+      if (size === 3n) {
+        var address = bytes.slice(cursor.index, cursor.index + 20);
+        cursor.index += 20;
+        return address;
+      }
+      throw new Error('Invalid GenLayer calldata: unknown special value.');
+    }
+    if (type === 1) return size;
+    if (type === 2) return -1n - size;
+    if (type === 3 || type === 4) {
+      var end = cursor.index + Number(size);
+      if (end > bytes.length) throw new Error('Invalid GenLayer calldata: truncated value.');
+      var raw = bytes.slice(cursor.index, end);
+      cursor.index = end;
+      return type === 4 ? new TextDecoder('utf-8').decode(raw) : raw;
+    }
+    if (type === 5) {
+      var items = [];
+      for (var itemIndex = 0; itemIndex < Number(size); itemIndex += 1) {
+        items.push(decodeStudioCalldataValue(bytes, cursor));
+      }
+      return items;
+    }
+    if (type === 6) {
+      var map = new Map();
+      for (var mapIndex = 0; mapIndex < Number(size); mapIndex += 1) {
+        var keyLength = Number(readCalldataLeb128(bytes, cursor));
+        var keyEnd = cursor.index + keyLength;
+        if (keyEnd > bytes.length) throw new Error('Invalid GenLayer calldata: truncated map key.');
+        var key = new TextDecoder('utf-8').decode(bytes.slice(cursor.index, keyEnd));
+        cursor.index = keyEnd;
+        map.set(key, decodeStudioCalldataValue(bytes, cursor));
+      }
+      return map;
+    }
+    throw new Error('Invalid GenLayer calldata: unknown type.');
+  }
+
+  function decodeStudioCalldata(bytes) {
+    var cursor = { index: 0 };
+    var decoded = decodeStudioCalldataValue(bytes, cursor);
+    if (cursor.index !== bytes.length) throw new Error('Invalid GenLayer calldata: trailing bytes.');
+    return decoded;
+  }
+
+  async function loadLiveClaimFromChain(txId) {
+    if (!txId || !config.rpcUrl) return null;
+    var rpc = async function (method, params) {
+      var response = await fetch(config.rpcUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: method, params: params }),
+      });
+      var payload = await response.json();
+      if (payload && payload.error) throw new Error(payload.error.message || 'RPC request failed.');
+      return payload && payload.result;
+    };
+    var statusResult = await rpc('gen_getTransactionStatus', [{ txId: txId }]);
+    var status = String(statusResult && (statusResult.status || statusResult.statusCode || '')).toUpperCase();
+    if (status !== 'FINALIZED' && status !== '7') return null;
+    var receipt = await rpc('eth_getTransactionReceipt', [txId]);
+    if (!receipt || String(receipt.status).toLowerCase() !== '0x1') return null;
+    var transaction = await rpc('eth_getTransactionByHash', [txId]);
+    if (!transaction || !transaction.data || !transaction.data.calldata) return null;
+
+    var binary = atob(transaction.data.calldata);
+    var bytes = new Uint8Array(binary.length);
+    for (var index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    var decoded = decodeStudioCalldata(bytes);
+    var method = decoded instanceof Map ? (decoded.get('method') || decoded.get('')) : (decoded.method || decoded['']);
+    var args = decoded instanceof Map ? decoded.get('args') : decoded.args;
+    if (method !== 'submit_claim' || !Array.isArray(args) || args.length < 2) return null;
+    var decodedResult = extractVerdictFromTransaction(transaction);
+    var record = {
+      claim_text: String(args[0]),
+      evidence_url: String(args[1]),
+      submitter: transaction.from_address || transaction.from || '',
+      tx_id: txId,
+      submitted_at: transaction.created_timestamp
+        ? new Date(Number(transaction.created_timestamp) * 1000).toISOString()
+        : new Date().toISOString(),
+      checked_at: decodedResult && decodedResult.checked_at ? decodedResult.checked_at : '',
+      evidence_hash: decodedResult && decodedResult.evidence_hash ? decodedResult.evidence_hash : '',
+      contract_address: config.contractAddress,
+      contract_version: config.contractVersion,
+      verdict: decodedResult ? decodedResult.verdict : 'Submitted',
+      reason: decodedResult && decodedResult.reason
+        ? decodedResult.reason
+        : 'The transaction is finalized. The submitted claim and evidence reference are recorded onchain.',
+    };
+    saveLiveClaim(record);
+    return record;
+  }
+
+  function shortValue(value) {
+    if (!value) return '—';
+    var text = String(value);
+    return text.length > 26 ? text.slice(0, 12) + '…' + text.slice(-10) : text;
+  }
+
+  function formatEvidenceUrl(url) {
+    return String(url || '').replace(/^https?:\/\//, '').replace(/\/$/, '') + ' ↗';
+  }
+
+  function decodeValidatorResult(result) {
+    if (typeof result !== 'string') return null;
+    try {
+      var binary = atob(result);
+      var bytes = new Uint8Array(binary.length);
+      for (var index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      var cursor = { index: bytes[0] === 0 ? 1 : 0 };
+      var structured = decodeStudioCalldataValue(bytes, cursor);
+      if (cursor.index === bytes.length && structured instanceof Map) {
+        var structuredVerdict = structured.get('verdict');
+        var structuredCheckedAt = structured.get('checked_at');
+        var structuredHash = structured.get('evidence_hash');
+        var structuredReason = structured.get('reason');
+        if (structuredVerdict) {
+          return {
+            verdict: String(structuredVerdict).charAt(0).toUpperCase() + String(structuredVerdict).slice(1).toLowerCase(),
+            reason: String(structuredReason || ''),
+            evidence_hash: String(structuredHash || ''),
+            checked_at: String(structuredCheckedAt || ''),
+          };
+        }
+      }
+      var text = new TextDecoder().decode(bytes);
+      var verdictIndex = text.toLowerCase().lastIndexOf('verdict');
+      if (verdictIndex < 0) return null;
+      var verdictMatch = text.slice(verdictIndex + 7).match(/(SUPPORTED|REFUTED|INSUFFICIENT)/i);
+      var reasonIndex = text.toLowerCase().lastIndexOf('reason', verdictIndex);
+      var evidenceHashIndex = text.toLowerCase().lastIndexOf('evidence_hash', reasonIndex);
+      var checkedAt = text.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?[+\-]\d{2}:\d{2}/);
+      var evidenceHash = evidenceHashIndex >= 0
+        ? text.slice(evidenceHashIndex + 13, reasonIndex).match(/[a-f0-9]{32,64}/i)
+        : null;
+      var reason = reasonIndex >= 0
+        ? text.slice(reasonIndex + 6, verdictIndex).replace(/[^\x20-\x7E]/g, ' ').replace(/\s+/g, ' ').trim()
+        : '';
+      return {
+        verdict: verdictMatch ? verdictMatch[1].charAt(0).toUpperCase() + verdictMatch[1].slice(1).toLowerCase() : 'Submitted',
+        reason: reason,
+        evidence_hash: evidenceHash ? evidenceHash[0] : '',
+        checked_at: checkedAt ? checkedAt[0] : '',
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function extractVerdictFromTransaction(transaction) {
+    var consensusData = transaction && transaction.consensus_data;
+    var resultGroups = [
+      consensusData && consensusData.validator_results,
+      consensusData && consensusData.validators,
+      transaction && transaction.validators,
+    ];
+    var results = resultGroups.reduce(function (all, group) {
+      return all.concat(Array.isArray(group) ? group : []);
+    }, []);
+    if (!Array.isArray(results)) return null;
+    var parsed = results
+      .filter(function (item) { return item && item.result && (!item.vote || String(item.vote).toLowerCase() === 'agree'); })
+      .map(function (item) { return decodeValidatorResult(item.result); })
+      .filter(Boolean);
+    if (!parsed.length) return null;
+    var counts = {};
+    parsed.forEach(function (item) { counts[item.verdict] = (counts[item.verdict] || 0) + 1; });
+    var verdict = parsed[0].verdict;
+    parsed.forEach(function (item) {
+      if ((counts[item.verdict] || 0) > (counts[verdict] || 0)) verdict = item.verdict;
+    });
+    var selected = parsed.find(function (item) { return item.verdict === verdict && item.reason; });
+    return {
+      verdict: verdict,
+      reason: selected ? selected.reason : '',
+      evidence_hash: selected ? selected.evidence_hash : '',
+      checked_at: selected ? selected.checked_at : '',
+    };
+  }
+
+  function hydrateClaimDetail() {
+    if (!document.body.hasAttribute('data-claim-detail')) return;
+    var record = loadLiveClaim();
+    var txId = new URLSearchParams(window.location.search).get('tx');
+    if (txId && (!record || record.verdict === 'Submitted')) {
+      loadLiveClaimFromChain(txId).then(function (chainRecord) {
+        if (chainRecord) hydrateClaimDetail();
+      }).catch(function (error) {
+        // Keep the labeled fixture if RPC data is unavailable, but retain a
+        // useful diagnostic for local testing instead of swallowing the cause.
+        console.warn('ProofCheck claim detail hydration failed:', error);
+      });
+      if (!record) return;
+    }
+    if (!record) {
+      return;
+    }
+
+    var verdict = String(record.verdict || 'Submitted');
+    var isSubmittedOnly = verdict === 'Submitted';
+    var setText = function (selector, value) {
+      var element = $(selector);
+      if (element) element.textContent = value;
+    };
+    var setAttr = function (selector, name, value) {
+      var element = $(selector);
+      if (element) element.setAttribute(name, value);
+    };
+
+    document.title = 'Live claim detail — ProofCheck';
+    setText('[data-live-state]', 'LIVE SUBMISSION · FINALIZED ONCHAIN');
+    setText('[data-live-claim-title]', record.claim_text || 'Submitted claim');
+    setText('[data-live-result-status]', verdict);
+    setText('[data-live-result-title]', isSubmittedOnly ? 'Claim submitted successfully.' : 'Evidence result is onchain.');
+    setText('[data-live-result-reason]', record.reason || 'The transaction is finalized. The submitted claim and evidence reference are recorded onchain.');
+    setText('[data-live-status-result]', verdict + (isSubmittedOnly ? ' — submitted claim.' : ' — evidence result.'));
+    setText('[data-live-claim]', record.claim_text || '—');
+    setText('[data-live-submitter]', shortValue(record.submitter));
+    setText('[data-live-claim-type]', 'GitHub evidence claim');
+    setText('[data-live-tx]', shortValue(record.tx_id));
+    setAttr('[data-live-tx-link]', 'href', (config.contractExplorer || 'https://explorer-studio-dev.genlayer.com/') + 'tx/' + record.tx_id);
+    setText('[data-live-evidence-kicker]', '02 / EVIDENCE · LIVE SUBMISSION');
+    setText('[data-live-evidence-heading]', 'Submitted evidence source.');
+    setText('[data-live-source-count]', '01');
+    setText('[data-live-evidence-section-meta]', '1 LIVE SOURCE');
+    setText('[data-live-evidence-title]', formatEvidenceUrl(record.evidence_url));
+    setAttr('[data-live-evidence-title]', 'href', record.evidence_url);
+    setText('[data-live-evidence-excerpt]', 'This GitHub URL was submitted for validator review.');
+    setText('[data-live-evidence-card-meta]', 'Submitted ' + new Date(record.submitted_at).toLocaleString());
+    setText('[data-live-fingerprint]', record.evidence_hash ? shortValue(record.evidence_hash) : 'NOT RETURNED BY CONTRACT');
+    setText('[data-live-fingerprint-copy]', 'The deployed contract stores the submitted URL. A content hash is shown when the contract returns one.');
+    setText('[data-live-review-count]', 'LIVE SUBMISSION');
+    setText('[data-live-history-status]', verdict + ' · live');
+    setText('[data-live-history-tx]', shortValue(record.tx_id));
+    setText('[data-live-history-copy]', record.reason || 'Finalized transaction recorded for this submitted claim.');
+    setText('[data-live-fixture-label]', 'LIVE SUBMISSION');
+    setText('[data-live-fixture-copy]', 'This record was created from the latest finalized submission in this browser.');
+    setText('[data-live-status-scope]', 'Live submission · ' + shortValue(record.submitter));
+    setText('[data-live-checked]', new Date(record.checked_at || record.submitted_at).toLocaleString());
+    setText('[data-live-review-version]', record.contract_version || 'studio-0.3.0');
+    setText('[data-live-evidence-count]', '01 submitted URL');
+    setText('[data-live-consensus]', 'GenLayer · finalized');
+    setText('[data-live-payment-note]', 'No verification charge. Studio protocol fee was signed separately by the wallet.');
+    setText('[data-live-footer-record]', 'Live submission · ' + shortValue(record.tx_id));
   }
 
   function setClaimStatus(form, status) {
@@ -406,6 +723,50 @@
     return state.client;
   }
 
+  async function waitForStudioFinalization(client, txId) {
+    var retries = 120;
+    var lastStatus = 'UNKNOWN';
+    while (retries > 0) {
+      var statusResult = await client.request({
+        method: 'gen_getTransactionStatus',
+        params: [{ txId: txId }],
+      });
+      lastStatus = String(statusResult && (statusResult.status || statusResult.statusCode || 'UNKNOWN')).toUpperCase();
+      if (lastStatus === 'FINALIZED' || lastStatus === '7') {
+        var evmReceipt = await client.request({
+          method: 'eth_getTransactionReceipt',
+          params: [txId],
+        });
+        if (!evmReceipt || String(evmReceipt.status).toLowerCase() !== '0x1') {
+          throw new Error('Transaction finalized but execution failed.');
+        }
+        var transactionData = null;
+        try {
+          transactionData = await client.request({
+            method: 'eth_getTransactionByHash',
+            params: [txId],
+          });
+        } catch (error) {
+          // The transaction data endpoint is optional on older Studio builds.
+        }
+        return {
+          transactionHash: txId,
+          status: '7',
+          statusName: 'FINALIZED',
+          txExecutionResultName: 'FINISHED_WITH_RETURN',
+          evmReceipt: evmReceipt,
+          transactionData: transactionData,
+        };
+      }
+      if (lastStatus === 'CANCELED' || lastStatus === '8' || lastStatus === 'VALIDATORS_TIMEOUT' || lastStatus === '12' || lastStatus === 'LEADER_TIMEOUT' || lastStatus === '13') {
+        throw new Error('Transaction did not finalize successfully (status: ' + lastStatus + ').');
+      }
+      await new Promise(function (resolve) { setTimeout(resolve, 5000); });
+      retries -= 1;
+    }
+    throw new Error('Timed out waiting for Studio transaction ' + txId + ' (current status: ' + lastStatus + ').');
+  }
+
   async function submitClaim(form) {
     var wallet = await ensureWalletForWrite();
     var client = await loadGenLayerClient(wallet);
@@ -427,19 +788,43 @@
     };
     setClaimStatus(form, 'not-submitted');
     setFormMessage(form, 'Open your wallet to sign the free testnet submission…');
+    var estimate;
+    if (typeof client.estimateTransactionFeesForWrite === 'function') {
+      estimate = await client.estimateTransactionFeesForWrite(write);
+    } else if (typeof client.estimateTransactionFees === 'function') {
+      // Fallback for older SDK builds without write-specific simulation.
+      estimate = await client.estimateTransactionFees({
+        leaderTimeunitsAllocation: 125n,
+        validatorTimeunitsAllocation: 250n,
+        executionBudgetPerRound: 155147700000000n,
+        totalMessageFees: 0n,
+        appealRounds: 1n,
+        rotations: [1n, 1n],
+      });
+    } else {
+      throw new Error('This GenLayer SDK cannot estimate transaction fees.');
+    }
+    if (!estimate || !estimate.distribution || estimate.feeValue === undefined || BigInt(estimate.feeValue) <= 0n) {
+      throw new Error('GenLayer returned an invalid fee estimate. Please try again.');
+    }
+    var fees = {
+      distribution: estimate.distribution,
+      feeValue: estimate.feeValue,
+    };
+    if (estimate.messageAllocations) fees.messageAllocations = estimate.messageAllocations;
     setFormMessage(form, 'Confirm the transaction in your wallet…');
-    // Studio Next simulates the free testnet fee internally. Calling the fee
-    // estimator first invokes sim_getFeeConfig, which is not exposed by some
-    // Studio RPC versions and prevents the wallet request from being emitted.
-    var txId = await client.writeContract(write);
+    var txId = await client.writeContract(Object.assign({}, write, { fees: fees }));
     var txLabel = typeof txId === 'string' ? txId : String(txId);
-    var isStudioPreview = Boolean(state.client && state.client.chain && state.client.chain.isStudio);
     setClaimStatus(form, 'checking');
     setFormMessage(form, 'GenLayer is checking the evidence…');
     var receipt = null;
-    if (!isStudioPreview && typeof client.waitForFinalization === 'function') {
+    if (state.client && state.client.chain && state.client.chain.isStudio) {
+      setFormMessage(form, 'Claim submitted. Waiting for Studio finalization…');
+      receipt = await waitForStudioFinalization(client, txId);
+      setClaimStatus(form, 'finalized');
+    } else if (typeof client.waitForFinalization === 'function') {
       setFormMessage(form, 'Claim submitted. Waiting for GenLayer finalization…');
-      receipt = await client.waitForFinalization({ hash: txId });
+      receipt = await client.waitForFinalization({ hash: txId, interval: 5000, retries: 120 });
       if (!receipt || typeof state.sdk.isSuccessful !== 'function' || !state.sdk.isSuccessful(receipt)) {
         throw new Error('Transaction finalized with an execution error.');
       }
@@ -447,15 +832,35 @@
     }
     var txIdElement = $('[data-tx-id]', form);
     if (txIdElement) txIdElement.textContent = txLabel;
-    setFormMessage(form, isStudioPreview
-      ? 'Claim is being checked. Open the claim record when consensus is ready.'
-      : '✓ Onchain complete. The verification result is ready.');
+    var decodedResult = extractVerdictFromTransaction(receipt && receipt.transactionData);
+    saveLiveClaim({
+      claim_text: claimText,
+      evidence_url: evidenceUrl,
+      submitter: wallet.account,
+      tx_id: txLabel,
+      submitted_at: new Date().toISOString(),
+      checked_at: decodedResult && decodedResult.checked_at ? decodedResult.checked_at : '',
+      evidence_hash: decodedResult && decodedResult.evidence_hash ? decodedResult.evidence_hash : '',
+      contract_address: config.contractAddress,
+      contract_version: config.contractVersion,
+      verdict: decodedResult ? decodedResult.verdict : 'Submitted',
+      reason: decodedResult && decodedResult.reason
+        ? decodedResult.reason
+        : 'The transaction is finalized. The submitted claim and evidence reference are recorded onchain.',
+    });
+    var detailLink = $('[data-claim-detail-link]', form);
+    if (detailLink) {
+      detailLink.hidden = false;
+      detailLink.setAttribute('href', '/records/pc-25-047/?live=1&tx=' + encodeURIComponent(txLabel));
+    }
+    setFormMessage(form, '✓ Onchain complete. The verification result is ready.');
     return receipt || txId;
   }
 
   function bindUI() {
     ensureWalletButton();
     ensureModal();
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('eip6963:requestProvider'));
 
     $$('[data-wallet-connect]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -538,6 +943,8 @@
     var repoFromQuery = new URLSearchParams(window.location.search).get('repo');
     var evidenceField = $('#evidence-1');
     if (repoFromQuery && evidenceField && !evidenceField.value) evidenceField.value = repoFromQuery;
+
+    hydrateClaimDetail();
   }
 
   window.ProofCheckWallet = {
