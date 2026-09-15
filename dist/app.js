@@ -91,12 +91,12 @@
       var currentChainId = parseInt(chainIdHex, 16);
       console.log('Current chain ID:', currentChainId);
 
-      // Check if on correct network - contract is on 61997
-      var contractChainId = 61997; // Where contract is deployed
+      // Check if on correct network - contract is on Bradbury Testnet (4221)
+      var contractChainId = config.chainId || 4221;
       if (currentChainId !== contractChainId) {
         state.wrongNetwork = true;
         console.warn('Wrong network. Current:', currentChainId, 'Expected:', contractChainId);
-        throw new Error('Please switch to GenLayer Chain 61997. Your wallet is on: ' + currentChainId);
+        throw new Error('Please switch to GenLayer Chain ' + contractChainId + '. Your wallet is on: ' + currentChainId);
       }
 
       state.wrongNetwork = false;
