@@ -217,11 +217,15 @@
       var estimate = await state.client.estimateTransactionFeesForWrite(write);
       setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
       message(form, 'Waiting for wallet signature…');
+      // Recreate client to ensure latest nonce
+      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
     } catch (feeError) {
       console.warn('Fee estimation failed, proceeding without explicit fee:', feeError);
       setText('[data-network-fee]', 'Network fee applied by GenLayer', form);
       message(form, 'Waiting for wallet signature…');
+      // Recreate client to ensure latest nonce
+      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract(write);
     }
     setText('[data-tx-id]', txId, form);
@@ -291,10 +295,14 @@
     try {
       var estimate = await state.client.estimateTransactionFeesForWrite(write);
       setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
+      // Recreate client to ensure latest nonce
+      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
     } catch (feeError) {
       console.warn('Fee estimation failed, proceeding without explicit fee:', feeError);
       setText('[data-network-fee]', 'Network fee applied by GenLayer', form);
+      // Recreate client to ensure latest nonce
+      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract(write);
     }
     setText('[data-tx-id]', txId, form);
