@@ -283,6 +283,19 @@
     message.classList.toggle('is-error', Boolean(isError));
   }
 
+  async function readPendingNonce(wallet) {
+    if (!wallet || !wallet.provider || typeof wallet.provider.request !== 'function') return null;
+    try {
+      var rawNonce = await wallet.provider.request({
+        method: 'eth_getTransactionCount',
+        params: [wallet.account, 'pending'],
+      });
+      return rawNonce === null || rawNonce === undefined ? null : Number(BigInt(rawNonce));
+    } catch (error) {
+      return null;
+    }
+  }
+
   async function ensureWalletForWrite() {
     if (!window.ProofCheckWallet) throw new Error('Wallet connection is unavailable. Reload the page and try again.');
     var wallet = window.ProofCheckWallet.getState();
@@ -348,6 +361,8 @@
       args: [claimType, claimText, repoUrl, evidenceUrls],
       value: 0n,
     };
+    var pendingNonce = await readPendingNonce(wallet);
+    if (pendingNonce !== null) write.nonce = pendingNonce;
 
     setFormMessage(form, 'Preparing the free testnet submission…');
     var feeOptions = null;
