@@ -260,11 +260,17 @@
   async function captureEvidence(urls, fallbackExcerpt) {
     var hashes = [];
     var excerpts = [];
+    var corsProxy = 'https://cors-anywhere.herokuapp.com/';
     for (var i = 0; i < urls.length; i += 1) {
       try {
         var controller = new AbortController();
         var timeout = setTimeout(function () { controller.abort(); }, 10000);
-        var response = await fetch(urls[i], { credentials: 'omit', signal: controller.signal });
+        var fetchUrl = urls[i];
+        // Use CORS proxy for GitHub URLs
+        if (urls[i].includes('github.com')) {
+          fetchUrl = corsProxy + urls[i];
+        }
+        var response = await fetch(fetchUrl, { credentials: 'omit', signal: controller.signal });
         clearTimeout(timeout);
         if (!response.ok) throw new Error('HTTP ' + response.status);
         var body = await response.text();
