@@ -473,8 +473,8 @@
   // Update wallet display
   function updateWalletDisplay() {
     if (state.account) {
-      walletAddress.textContent = state.account.slice(0, 6) + '…' + state.account.slice(-4);
-      walletAddressCopy.textContent = state.account;
+      if (walletAddress) walletAddress.textContent = state.account.slice(0, 6) + '…' + state.account.slice(-4);
+      if (walletAddressCopy) walletAddressCopy.textContent = state.account;
       if (document.getElementById('start-check-btn')) {
         document.getElementById('start-check-btn').style.display = 'none';
       }
