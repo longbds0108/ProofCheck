@@ -280,7 +280,7 @@
           <a href="/how-it-works/">How it works</a>
           <a href="/docs/">Docs</a>
           <a href="/records/pc-25-047/">Claim detail</a>
-          <button class="button" type="button" id="start-check-btn">Start Check <span class="arrow">→</span></button>
+          <button class="button wallet-button" type="button" id="start-check-btn" data-wallet-connect>Connect wallet <span class="arrow">→</span></button>
         </nav>
       </div>
     </header>
@@ -348,69 +348,44 @@
     <div class="wallet-modal" id="wallet-modal">
       <div class="wallet-modal-content">
         <div class="wallet-modal-header">
-          <h2>Connect Wallet</h2>
+          <h2 id="wallet-modal-title">Connect wallet</h2>
+          <p id="wallet-modal-subtitle">Connect an EVM wallet to continue on GenLayer.</p>
         </div>
-        <button class="wallet-modal-close" id="wallet-modal-close">✕</button>
+        <button class="wallet-modal-close" id="wallet-modal-close" type="button" aria-label="Close">✕</button>
 
         <div class="wallet-modal-body">
+          <div id="wallet-status" class="wallet-status" data-state="info" role="status" aria-live="polite"></div>
+          <div data-wallet-options>
           <div class="wallet-category">
-            <div class="wallet-category-label">Popular</div>
+            <div class="wallet-category-label">Browser wallets</div>
             <div class="wallet-options">
-              <button class="wallet-option" data-wallet="metamask">
+              <button class="wallet-option" data-wallet="metamask" type="button">
                 <div class="wallet-option-icon">🦊</div>
                 <div class="wallet-option-info">
                   <h3>MetaMask</h3>
+                  <p>Connect an injected wallet</p>
                 </div>
               </button>
-              <button class="wallet-option" data-wallet="coinbase">
-                <div class="wallet-option-icon">₿</div>
+              <button class="wallet-option" data-wallet="coinbase" type="button">
+                <div class="wallet-option-icon">🔵</div>
                 <div class="wallet-option-info">
-                  <h3>Coinbase</h3>
+                  <h3>Coinbase Wallet</h3>
+                  <p>Connect an injected wallet</p>
                 </div>
               </button>
-              <button class="wallet-option" data-wallet="walletconnect">
-                <div class="wallet-option-icon">🔗</div>
+              <button class="wallet-option" data-wallet="other" type="button">
+                <div class="wallet-option-icon">👛</div>
                 <div class="wallet-option-info">
-                  <h3>WalletConnect</h3>
+                  <h3>Other EVM wallet</h3>
+                  <p>Use the wallet detected in your browser</p>
                 </div>
               </button>
             </div>
           </div>
-
-          <div class="wallet-category">
-            <div class="wallet-category-label">More Wallets</div>
-            <div class="wallet-options">
-              <button class="wallet-option" data-wallet="rainbow">
-                <div class="wallet-option-icon">🌈</div>
-                <div class="wallet-option-info">
-                  <h3>Rainbow</h3>
-                </div>
-              </button>
-              <button class="wallet-option" data-wallet="okx">
-                <div class="wallet-option-icon">📦</div>
-                <div class="wallet-option-info">
-                  <h3>OKX</h3>
-                </div>
-              </button>
-              <button class="wallet-option" data-wallet="backpack">
-                <div class="wallet-option-icon">🎒</div>
-                <div class="wallet-option-info">
-                  <h3>Backpack</h3>
-                </div>
-              </button>
-              <button class="wallet-option" data-wallet="trust">
-                <div class="wallet-option-icon">🛡️</div>
-                <div class="wallet-option-info">
-                  <h3>Trust</h3>
-                </div>
-              </button>
-              <button class="wallet-option" data-wallet="other">
-                <div class="wallet-option-icon">👛</div>
-                <div class="wallet-option-info">
-                  <h3>Other</h3>
-                </div>
-              </button>
-            </div>
+          </div>
+          <div class="wallet-actions">
+            <button class="button wallet-switch-button" id="wallet-switch-network" type="button" hidden>Switch network</button>
+            <button class="button ghost wallet-disconnect-button" id="wallet-disconnect" type="button" hidden>Disconnect</button>
           </div>
         </div>
 
