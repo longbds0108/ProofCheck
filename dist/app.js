@@ -36,7 +36,7 @@
   };
 
   var targetNetworkName = function () {
-    return config.networkName || (config.network === 'studio-next' ? 'GenLayer Studio Next' : 'GenLayer');
+    return config.networkName || (config.network === 'studioDevnet' || config.network === 'studio-next' ? 'GenLayer Studio Next' : 'GenLayer');
   };
 
   function providerList() {
@@ -311,6 +311,8 @@
       state.chains = modules[1].default || modules[1];
     }
     var chain = state.chains[config.network]
+      || state.chains.studioDevnet
+      || state.chains.studio_devnet
       || state.chains.studio_next
       || state.chains['studio-next']
       || state.chains.studionet;
@@ -350,9 +352,14 @@
     setFormMessage(form, 'Preparing the free testnet submission…');
     var feeOptions = null;
     if (typeof client.estimateTransactionFeesForWrite === 'function') {
-      var estimate = await client.estimateTransactionFeesForWrite(write);
-      if (estimate && estimate.distribution && estimate.feeValue !== undefined) {
-        feeOptions = { distribution: estimate.distribution, feeValue: estimate.feeValue };
+      try {
+        var estimate = await client.estimateTransactionFeesForWrite(write);
+        if (estimate && estimate.distribution && estimate.feeValue !== undefined) {
+          feeOptions = { distribution: estimate.distribution, feeValue: estimate.feeValue };
+        }
+      } catch (error) {
+        var estimationMessage = error && error.message ? error.message : String(error);
+        if (!/sim_getFeeConfig|method not found|not available/i.test(estimationMessage)) throw error;
       }
     }
     setFormMessage(form, 'Confirm the transaction in your wallet…');

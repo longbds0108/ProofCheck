@@ -1,5 +1,5 @@
 window.PROOFCHECK_CONFIG = {
-  network: 'studio-next',
+  network: 'studioDevnet',
   networkName: 'GenLayer Studio Next',
   chainId: 61997,
   contractVersion: '1.1.0',
