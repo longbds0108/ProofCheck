@@ -123,30 +123,27 @@ Address: 0x32761911D56A00BcB5893D57e290e73243FdFd79
             <h3>Submitting a Claim</h3>
             <div class="flow-diagram">
               <div class="flow-step" data-step="1">
-                <div class="flow-step-text"><strong>Submit Claim</strong><br/>User fills form with claim type, statement, repository URL, and evidence URLs.</div>
+                <div class="flow-step-text"><strong>Send a claim</strong><br/>Connect a wallet, write one statement, and add public evidence links.</div>
               </div>
               <div class="flow-step" data-step="2">
-                <div class="flow-step-text"><strong>Attach Evidence</strong><br/>User supplies public evidence URLs for validators to inspect during consensus.</div>
+                <div class="flow-step-text"><strong>Pay with GEN</strong><br/>Review the verification and network fees, then sign the transaction.</div>
               </div>
               <div class="flow-step" data-step="3">
-                <div class="flow-step-text"><strong>Connect Wallet</strong><br/>User connects MetaMask wallet for transaction signing.</div>
+                <div class="flow-step-text"><strong>GenLayer verifies</strong><br/>The Intelligent Contract reads the links; validators analyze and compare the evidence.</div>
               </div>
               <div class="flow-step" data-step="4">
-                <div class="flow-step-text"><strong>Estimate Network Fee</strong><br/>The dApp requests the current GenLayer network fee estimate before signing.</div>
-              </div>
-              <div class="flow-step" data-step="5">
-                <div class="flow-step-text"><strong>Submit for Free</strong><br/>The verification fee is 0 GEN on testnet; a separate network fee may still apply.</div>
-              </div>
-              <div class="flow-step" data-step="6">
-                <div class="flow-step-text"><strong>Consensus</strong><br/>GenLayer validators independently verify and reach consensus on verdict.</div>
-              </div>
-              <div class="flow-step" data-step="7">
-                <div class="flow-step-text"><strong>On-Chain Storage</strong><br/>Claim, submitter, evidence URLs, status, and validator reason are stored on-chain.</div>
-              </div>
-              <div class="flow-step" data-step="8">
-                <div class="flow-step-text"><strong>Display Result</strong><br/>Frontend reads result from blockchain and displays to user.</div>
+                <div class="flow-step-text"><strong>Save the result onchain</strong><br/>The verdict, reason, evidence, review time, and transaction reference remain visible.</div>
               </div>
             </div>
+
+            <h3>Simple UI states</h3>
+            <p>The interface keeps technical transaction details in the background and shows only four user-facing states:</p>
+            <ul style="color: #c0cbc3; line-height: 1.8;">
+              <li><strong>Not submitted:</strong> the claim has not been sent.</li>
+              <li><strong>Checking:</strong> GenLayer and validators are reviewing the evidence.</li>
+              <li><strong>Provisional result:</strong> a result is visible while finalization completes.</li>
+              <li><strong>Finalized onchain:</strong> the transaction is finalized and the contract execution succeeded.</li>
+            </ul>
           </section>
 
           <!-- STATUSES -->

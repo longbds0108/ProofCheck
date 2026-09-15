@@ -283,6 +283,40 @@
     message.classList.toggle('is-error', Boolean(isError));
   }
 
+  function setClaimStatus(form, status) {
+    var panel = $('[data-claim-status]');
+    if (!panel) return;
+    var copy = {
+      'not-submitted': {
+        label: 'Not submitted',
+        caption: 'Connect your wallet and submit the claim to begin.',
+      },
+      checking: {
+        label: 'Checking',
+        caption: 'GenLayer is reading the evidence and validators are reviewing it.',
+      },
+      provisional: {
+        label: 'Provisional result',
+        caption: 'A result is available while finalization completes.',
+      },
+      finalized: {
+        label: 'Finalized onchain',
+        caption: 'The transaction is finalized and the contract completed successfully.',
+      },
+    };
+    var selected = copy[status] || copy['not-submitted'];
+    var currentIndex = ['not-submitted', 'checking', 'provisional', 'finalized'].indexOf(status);
+    panel.dataset.claimStatus = status;
+    var label = $('[data-claim-status-label]', panel);
+    var caption = $('[data-claim-status-caption]', panel);
+    if (label) label.textContent = selected.label;
+    if (caption) caption.textContent = selected.caption;
+    $$('[data-status-step]', panel).forEach(function (step, index) {
+      step.classList.toggle('is-active', index <= currentIndex);
+      step.classList.toggle('is-current', index === currentIndex);
+    });
+  }
+
   async function ensureWalletForWrite() {
     if (!window.ProofCheckWallet) throw new Error('Wallet connection is unavailable. Reload the page and try again.');
     var wallet = window.ProofCheckWallet.getState();
@@ -349,7 +383,8 @@
       args: [claimType, claimText, repoUrl, evidenceUrls],
       value: 0n,
     };
-    setFormMessage(form, 'Preparing the free testnet submission…');
+    setClaimStatus(form, 'not-submitted');
+    setFormMessage(form, 'Open your wallet to sign the free testnet submission…');
     var feeOptions = null;
     /*
      * Do not run estimateTransactionFeesForWrite here. On Studio Next it
@@ -379,19 +414,22 @@
       : await client.writeContract(write);
     var txLabel = typeof txId === 'string' ? txId : String(txId);
     var isStudioPreview = Boolean(state.client && state.client.chain && state.client.chain.isStudio);
+    setClaimStatus(form, 'checking');
+    setFormMessage(form, 'GenLayer is checking the evidence…');
     var receipt = null;
     if (!isStudioPreview && typeof client.waitForFinalization === 'function') {
       setFormMessage(form, 'Claim submitted. Waiting for GenLayer finalization…');
       receipt = await client.waitForFinalization({ hash: txId });
-      if (state.sdk.isSuccessful && receipt && !state.sdk.isSuccessful(receipt)) {
+      if (!receipt || typeof state.sdk.isSuccessful !== 'function' || !state.sdk.isSuccessful(receipt)) {
         throw new Error('Transaction finalized with an execution error.');
       }
+      setClaimStatus(form, 'finalized');
     }
     var txIdElement = $('[data-tx-id]', form);
     if (txIdElement) txIdElement.textContent = txLabel;
     setFormMessage(form, isStudioPreview
-      ? '✓ Claim submitted to ' + targetNetworkName() + '. Check Studio Next for consensus progress.'
-      : '✓ Claim finalized on ' + targetNetworkName() + '.');
+      ? 'Claim is being checked. Open the claim record when consensus is ready.'
+      : '✓ Onchain complete. The verification result is ready.');
     return receipt || txId;
   }
 
@@ -455,7 +493,7 @@
     $$('[data-rebuttal-form]').forEach(function (form) {
       form.addEventListener('submit', function (event) {
         event.preventDefault();
-        setFormMessage(form, 'Rebuttals will be enabled after claim submission is live.');
+        setFormMessage(form, 'Opposing evidence will create a new review when rebuttal submission is enabled.');
       });
     });
 
