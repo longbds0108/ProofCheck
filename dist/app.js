@@ -351,11 +351,22 @@
     };
     setFormMessage(form, 'Preparing the free testnet submission…');
     var feeOptions = null;
-    if (typeof client.estimateTransactionFeesForWrite === 'function') {
+    /*
+     * Do not run estimateTransactionFeesForWrite here. On Studio Next it
+     * performs a full sim_estimateTransactionFees call, which can remain
+     * pending and prevents the wallet from ever receiving eth_sendTransaction.
+     * The deterministic fee estimate is enough for this free-verification
+     * flow; the verification fee remains 0 and only the network fee is paid.
+     */
+    if (typeof client.estimateTransactionFees === 'function') {
       try {
-        var estimate = await client.estimateTransactionFeesForWrite(write);
+        var estimate = await client.estimateTransactionFees({});
         if (estimate && estimate.distribution && estimate.feeValue !== undefined) {
-          feeOptions = { distribution: estimate.distribution, feeValue: estimate.feeValue };
+          feeOptions = {
+            distribution: estimate.distribution,
+            messageAllocations: estimate.messageAllocations,
+            feeValue: estimate.feeValue,
+          };
         }
       } catch (error) {
         var estimationMessage = error && error.message ? error.message : String(error);
