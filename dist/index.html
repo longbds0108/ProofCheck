@@ -251,6 +251,14 @@
       .wallet-dropdown button:hover { background: rgba(255,255,255,.06); }
       .wallet-dropdown button.disconnect { color: #ff6b58; }
       .wallet-dropdown .divider { height: 1px; background: rgba(255,255,255,.06); margin: 4px 0; }
+      .wallet-status { margin-bottom: 12px; padding: 11px 12px; border: 1px solid rgba(177,209,193,.2); border-radius: 9px; color: var(--muted); background: rgba(3,17,13,.35); font: 12px/1.45 "DM Mono", monospace; }
+      .wallet-status[data-state="success"] { color: var(--lime); border-color: rgba(200,255,77,.3); }
+      .wallet-status[data-state="warning"] { color: var(--warning); border-color: rgba(244,197,94,.35); }
+      .wallet-status[data-state="error"] { color: var(--danger); border-color: rgba(255,107,88,.35); }
+      .wallet-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .wallet-actions .button { min-height: 42px; font-size: 12px; }
+      .wallet-switch-button, .wallet-disconnect-button { width: 100%; }
+      .wallet-modal [hidden] { display: none !important; }
 
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
