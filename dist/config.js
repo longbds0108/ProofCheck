@@ -9,9 +9,11 @@ window.PROOFCHECK_CONFIG = {
   nativeCurrencyDecimals: 18,
   treasuryAddress: '0xf9642b695d4ddf58599c953a791f94c2e96b6a57',
   contractExplorer: 'https://explorer-studio-dev.genlayer.com/',
-  rpcUrl: 'https://studio-next.genlayer.com/api',
+  // studio-next is a browser alias; SDK requests must use the canonical
+  // Studio preview RPC for chain 61997.
+  rpcUrl: 'https://studio-dev.genlayer.com/api',
   rpcUrls: [
-    'https://studio-next.genlayer.com/api',
+    'https://studio-dev.genlayer.com/api',
     'https://rpc.genlayer.com/',
     'https://api.genlayer.com/'
   ],
