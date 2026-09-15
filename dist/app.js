@@ -28,7 +28,7 @@
   };
 
   var targetChainId = function () {
-    return Number(config.chainId || 61999);
+    return Number(config.chainId || 61997);
   };
 
   var targetChainHex = function () {
@@ -36,7 +36,7 @@
   };
 
   var targetNetworkName = function () {
-    return config.networkName || (config.network === 'studio-next' ? 'GenLayer Studionet' : 'GenLayer');
+    return config.networkName || (config.network === 'studio-next' ? 'GenLayer Studio Next' : 'GenLayer');
   };
 
   function providerList() {

@@ -1,10 +1,9 @@
 window.PROOFCHECK_CONFIG = {
   network: 'studio-next',
-  networkName: 'GenLayer Studionet',
-  chainId: 61999,
+  networkName: 'GenLayer Studio Next',
+  chainId: 61997,
   contractVersion: '1.1.0',
-  // Set this to the address returned after deploying contracts/proofcheck.py v1.1.0.
-  contractAddress: '',
+  contractAddress: '0x32761911D56A00BcB5893D57e290e73243FdFd79',
   nativeCurrencyName: 'GEN',
   nativeCurrencySymbol: 'GEN',
   nativeCurrencyDecimals: 18,
