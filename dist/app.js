@@ -176,6 +176,13 @@
   }
 
   async function submitPaidReview(form) {
+    try {
+      await loadSdk();
+      if (!state.sdk || !state.chains) throw new Error('SDK not properly initialized');
+    } catch (error) {
+      message(form, '× Failed to load SDK: ' + error.message, true);
+      throw error;
+    }
     var evidenceList = [$('#evidence-1', form).value.trim(), $('#evidence-2', form).value.trim()].filter(Boolean);
     var evidenceUrls = evidenceList.join('\n');
     var evidenceNote = $('#evidence-note', form).value.trim();
@@ -213,19 +220,21 @@
     };
     message(form, 'Estimating the GenLayer network fee…');
     var txId;
+    var chain = state.chains['studio-next'] || state.chains.studio_next || Object.values(state.chains)[0];
+    if (!chain) throw new Error('GenLayer chain not available');
     try {
       var estimate = await state.client.estimateTransactionFeesForWrite(write);
       setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
       message(form, 'Waiting for wallet signature…');
       // Recreate client to ensure latest nonce
-      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
+      state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
     } catch (feeError) {
       console.warn('Fee estimation failed, proceeding without explicit fee:', feeError);
       setText('[data-network-fee]', 'Network fee applied by GenLayer', form);
       message(form, 'Waiting for wallet signature…');
       // Recreate client to ensure latest nonce
-      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
+      state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract(write);
     }
     setText('[data-tx-id]', txId, form);
@@ -262,6 +271,13 @@
   }
 
   async function submitRebuttal(form) {
+    try {
+      await loadSdk();
+      if (!state.sdk || !state.chains) throw new Error('SDK not properly initialized');
+    } catch (error) {
+      message(form, '× Failed to load SDK: ' + error.message, true);
+      throw error;
+    }
     var claimId = document.body.dataset.claimId;
     if (!claimId) throw new Error('This detail page is missing a claim id.');
 
@@ -292,17 +308,19 @@
     };
     message(form, 'Estimating the network fee…');
     var txId;
+    var chain = state.chains['studio-next'] || state.chains.studio_next || Object.values(state.chains)[0];
+    if (!chain) throw new Error('GenLayer chain not available');
     try {
       var estimate = await state.client.estimateTransactionFeesForWrite(write);
       setText('[data-network-fee]', weiToGen(estimate.feeValue) + ' GEN estimated', form);
       // Recreate client to ensure latest nonce
-      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
+      state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract({ ...write, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
     } catch (feeError) {
       console.warn('Fee estimation failed, proceeding without explicit fee:', feeError);
       setText('[data-network-fee]', 'Network fee applied by GenLayer', form);
       // Recreate client to ensure latest nonce
-      state.client = state.sdk.createClient({ chain: state.chains['studio-next'], account: state.account, provider: window.ethereum });
+      state.client = state.sdk.createClient({ chain: chain, account: state.account, provider: window.ethereum });
       txId = await state.client.writeContract(write);
     }
     setText('[data-tx-id]', txId, form);
@@ -442,13 +460,14 @@
   if (copyAddressBtn) {
     copyAddressBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      var addressToCopy = state.account || walletAddressCopy.textContent;
+      var addressToCopy = state.account || (walletAddressCopy ? walletAddressCopy.textContent : '');
+      if (!addressToCopy) return;
       navigator.clipboard.writeText(addressToCopy).then(function() {
         var originalText = copyAddressBtn.textContent;
         copyAddressBtn.textContent = '✓ Copied';
         if (walletDropdown) walletDropdown.classList.remove('active');
         setTimeout(function() {
-          copyAddressBtn.innerHTML = '<span id="wallet-address-copy">' + addressToCopy + '</span>';
+          copyAddressBtn.textContent = addressToCopy;
         }, 1500);
       });
     });
