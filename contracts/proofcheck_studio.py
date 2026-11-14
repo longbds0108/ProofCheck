@@ -1,5 +1,8 @@
-# v0.3.0 - ProofCheck Studio: free GitHub claim verification.
-# { "Depends": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng" }
+# { "Depends": "py-genlayer:babwp9t37jw9g4j2bccgn14g6x7x9s1f7dsmh7emvz735pz4zxa0" }
+
+# The runner header above must stay alone: GenVM parses the whole leading
+# comment block as JSON, so keep a blank line before any other comment.
+# v0.4.0 - ProofCheck: free GitHub claim verification with readable records.
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,6 +17,7 @@ from genlayer.types import *
 @allow_storage
 @dataclass
 class Verification:
+    submitter: str
     claim_text: str
     evidence_url: str
     verdict: str
@@ -23,7 +27,7 @@ class Verification:
 
 
 class ProofCheckStudio(gl.contract.Contract):
-    """Free Studio prototype for AI-assisted evidence verification."""
+    """AI-assisted GitHub evidence verification on GenLayer."""
 
     verifications: gl.storage.DynArray[Verification]
 
@@ -114,8 +118,10 @@ Rules:
             )
         )
 
+        # GenVM pins the clock to the transaction time, so every validator agrees.
         checked_at = datetime.now(timezone.utc).isoformat()
         record = Verification(
+            submitter=gl.message.sender_address.as_hex,
             claim_text=claim_text,
             evidence_url=evidence_url,
             verdict=result["verdict"],
@@ -126,6 +132,40 @@ Rules:
         self.verifications.append(record)
 
         return {
+            "verdict": record.verdict,
+            "reason": record.reason,
+            "evidence_hash": record.evidence_hash,
+            "checked_at": record.checked_at,
+        }
+
+    @gl.public.view
+    def get_verification_count(self) -> int:
+        return len(self.verifications)
+
+    @gl.public.view
+    def get_verification(self, index: int) -> dict[str, str]:
+        if index < 0 or index >= len(self.verifications):
+            raise gl.vm.UserError("Verification not found")
+        return self._to_dict(index)
+
+    @gl.public.view
+    def get_latest_verification_by(self, submitter: str) -> dict[str, str]:
+        """Return the newest record from one wallet, or an empty dict."""
+        wanted = submitter.strip().lower()
+        index = len(self.verifications) - 1
+        while index >= 0:
+            if self.verifications[index].submitter.lower() == wanted:
+                return self._to_dict(index)
+            index -= 1
+        return {}
+
+    def _to_dict(self, index: int) -> dict[str, str]:
+        record = self.verifications[index]
+        return {
+            "index": str(index),
+            "submitter": record.submitter,
+            "claim_text": record.claim_text,
+            "evidence_url": record.evidence_url,
             "verdict": record.verdict,
             "reason": record.reason,
             "evidence_hash": record.evidence_hash,

@@ -107,9 +107,10 @@
             <h3>2. Smart Contract Layer</h3>
             <p>Intelligent contract deployed on GenLayer that receives claims and triggers validator consensus.</p>
             <div class="code-block">
-Contract: ProofCheck Studio v0.3.0
-Network: GenLayer Studio Next (chainId: 61997)
-Address: 0xA2AC2976433d32B42952404f66373fF084678F49
+Contract: ProofCheck v0.4.0
+Network: GenLayer Bradbury Phase 2 (chainId: 4221)
+Address: 0x19979b6524206f510da9a9a37905FD3898A46ba7
+Views: get_verification_count, get_verification, get_latest_verification_by
             </div>
 
             <h3>3. Blockchain Layer</h3>
@@ -126,7 +127,7 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
                 <div class="flow-step-text"><strong>Send a claim</strong><br/>Connect a wallet, write one statement, and add public evidence links.</div>
               </div>
               <div class="flow-step" data-step="2">
-                <div class="flow-step-text"><strong>Sign the free testnet transaction</strong><br/>ProofCheck charges 0 GEN for verification during Studio testing; your wallet may show a separate protocol or consensus fee.</div>
+                <div class="flow-step-text"><strong>Sign the testnet transaction</strong><br/>ProofCheck charges no application verification fee; GenLayer network fees are estimated separately.</div>
               </div>
               <div class="flow-step" data-step="3">
                 <div class="flow-step-text"><strong>GenLayer verifies</strong><br/>The Intelligent Contract reads the links; validators analyze and compare the evidence.</div>
@@ -257,17 +258,17 @@ Address: 0xA2AC2976433d32B42952404f66373fF084678F49
 
             <h3>Fee Structure</h3>
             <div class="code-block">
-ProofCheck verification fee: 0 GEN in Studio
-Studio protocol / consensus fee: may be requested separately by the wallet
+ProofCheck verification fee: 0 GEN
+GenLayer protocol / consensus fee: estimated separately by the wallet
 Application verification cost: 0 GEN (excluding protocol fee)
             </div>
 
             <h3>Network Information</h3>
             <div class="code-block">
-Network: GenLayer Studio Next
-Chain ID: 61997
-RPC: https://studio-dev.genlayer.com/api
-Explorer: https://explorer-studio-dev.genlayer.com/
+Network: GenLayer Bradbury Phase 2
+Chain ID: 4221
+RPC: https://rpc.testnet-chain.genlayer.com/
+Explorer: https://scan.testnet-chain.genlayer.com/
             </div>
           </section>
 
@@ -288,13 +289,13 @@ Explorer: https://explorer-studio-dev.genlayer.com/
             <p>Majority vote wins. Dissenting validators' opinions are recorded on-chain for transparency.</p>
 
             <h3>Why might my wallet show a fee?</h3>
-            <p>ProofCheck charges 0 GEN for verification on testnet. GenLayer may still require a separate network or consensus fee to process the transaction.</p>
+            <p>ProofCheck charges no application verification fee on testnet. GenLayer network fees are estimated separately.</p>
 
             <h3>Can I challenge a verdict?</h3>
             <p>Rebuttal submissions are planned for a later step. For now, each claim keeps its own transparent result and evidence trail.</p>
 
             <h3>How long does verification take?</h3>
-            <p>Consensus timing can vary on Studio. ProofCheck keeps the claim in Checking or Provisional result until the transaction reaches FINALIZED and execution succeeds; only then does Claim detail show Finalized onchain.</p>
+            <p>Consensus timing can vary on Bradbury Phase 2. ProofCheck keeps the claim in Checking or Provisional result until the transaction reaches FINALIZED and execution succeeds; only then does Claim detail show Finalized onchain.</p>
 
             <h3>What claim types are supported?</h3>
             <p>Currently MVP supports: "Repository is open source" and "Repository has a usable license". More claim types coming in future versions.</p>

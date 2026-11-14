@@ -68,7 +68,7 @@
   };
 
   var targetChainId = function () {
-    return Number(config.chainId || 61997);
+    return Number(config.chainId || 4221);
   };
 
   var targetChainHex = function () {
@@ -463,7 +463,7 @@
   async function loadLiveClaimFromChain(txId) {
     if (!txId || !config.rpcUrl) return null;
     var rpc = async function (method, params) {
-      var response = await fetch(config.rpcUrl, {
+      var response = await fetch(config.genlayerRpcUrl || config.rpcUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: method, params: params }),
@@ -636,7 +636,7 @@
     setText('[data-live-submitter]', shortValue(record.submitter));
     setText('[data-live-claim-type]', 'GitHub evidence claim');
     setText('[data-live-tx]', shortValue(record.tx_id));
-    setAttr('[data-live-tx-link]', 'href', (config.contractExplorer || 'https://explorer-studio-dev.genlayer.com/') + 'tx/' + record.tx_id);
+    setAttr('[data-live-tx-link]', 'href', (config.contractExplorer || 'https://scan.testnet-chain.genlayer.com/') + 'tx/' + record.tx_id);
     setText('[data-live-evidence-kicker]', '02 / EVIDENCE · LIVE SUBMISSION');
     setText('[data-live-evidence-heading]', 'Submitted evidence source.');
     setText('[data-live-source-count]', '01');
@@ -655,10 +655,10 @@
     setText('[data-live-fixture-copy]', 'This record was created from the latest finalized submission in this browser.');
     setText('[data-live-status-scope]', 'Live submission · ' + shortValue(record.submitter));
     setText('[data-live-checked]', new Date(record.checked_at || record.submitted_at).toLocaleString());
-    setText('[data-live-review-version]', record.contract_version || 'studio-0.3.0');
+    setText('[data-live-review-version]', record.contract_version || '0.4.0');
     setText('[data-live-evidence-count]', '01 submitted URL');
     setText('[data-live-consensus]', 'GenLayer · finalized');
-    setText('[data-live-payment-note]', 'No verification charge. Studio protocol fee was signed separately by the wallet.');
+    setText('[data-live-payment-note]', 'No verification charge. The GenLayer network fee was signed separately by the wallet.');
     setText('[data-live-footer-record]', 'Live submission · ' + shortValue(record.tx_id));
   }
 
@@ -714,26 +714,21 @@
 
   async function loadGenLayerClient(wallet) {
     if (!config.contractAddress) throw new Error('ProofCheck contract is not deployed on this testnet yet.');
-    if (config.contractVersion !== 'studio-0.3.0') throw new Error('The configured ProofCheck Studio contract is outdated.');
+    if (config.contractVersion !== '0.4.0') throw new Error('The configured ProofCheck contract is outdated.');
     if (!state.sdk) {
       var modules = await Promise.all([
-        import(config.sdkUrl || 'https://esm.sh/genlayer-js@2.0.0-rc.1?bundle'),
-        import(config.chainsUrl || 'https://esm.sh/genlayer-js/chains?bundle'),
+        import(config.sdkUrl || 'https://esm.sh/genlayer-js@2.0.0-rc.3?bundle'),
+        import(config.chainsUrl || 'https://esm.sh/genlayer-js@2.0.0-rc.3/chains?bundle'),
       ]);
       state.sdk = modules[0].default || modules[0];
       state.chains = modules[1].default || modules[1];
     }
-    var chain = state.chains[config.network]
-      || state.chains.studioDevnet
-      || state.chains.studio_devnet
-      || state.chains.studio_next
-      || state.chains['studio-next']
-      || state.chains.studionet;
+    var chain = state.chains[config.network];
     if (!chain) throw new Error('GenLayer chain configuration was not found.');
     state.client = state.sdk.createClient({
       chain: chain,
       account: wallet.account,
-      endpoint: config.rpcUrl,
+      endpoint: config.genlayerRpcUrl || config.rpcUrl,
       provider: wallet.provider,
     });
     return state.client;
@@ -781,6 +776,33 @@
       retries -= 1;
     }
     throw new Error('Timed out waiting for Studio transaction ' + txId + ' (current status: ' + lastStatus + ').');
+  }
+
+  async function readLatestVerdict(client, account, claimText, evidenceUrl) {
+    try {
+      var result = await client.readContract({
+        address: config.contractAddress,
+        functionName: 'get_latest_verification_by',
+        args: [account],
+      });
+      var get = function (key) {
+        if (!result) return '';
+        var value = result instanceof Map ? result.get(key) : result[key];
+        return value === undefined || value === null ? '' : String(value);
+      };
+      if (get('claim_text') !== claimText || get('evidence_url') !== evidenceUrl) return null;
+      var verdict = get('verdict');
+      if (!verdict) return null;
+      return {
+        verdict: verdict.charAt(0).toUpperCase() + verdict.slice(1).toLowerCase(),
+        reason: get('reason'),
+        evidence_hash: get('evidence_hash'),
+        checked_at: get('checked_at'),
+      };
+    } catch (error) {
+      console.warn('ProofCheck could not read the stored verdict:', error);
+      return null;
+    }
   }
 
   async function submitClaim(form) {
@@ -838,17 +860,22 @@
       setFormMessage(form, 'Claim submitted. Waiting for Studio finalization…');
       receipt = await waitForStudioFinalization(client, txId);
       setClaimStatus(form, 'finalized');
-    } else if (typeof client.waitForFinalization === 'function') {
-      setFormMessage(form, 'Claim submitted. Waiting for GenLayer finalization…');
-      receipt = await client.waitForFinalization({ hash: txId, interval: 5000, retries: 120 });
+    } else {
+      // Bradbury finalization waits out the appeal window, so stop once
+      // validators have reached a decision and show it as provisional.
+      setFormMessage(form, 'Claim submitted. Waiting for validator consensus…');
+      receipt = typeof client.waitForDecision === 'function'
+        ? await client.waitForDecision({ hash: txId, interval: 5000, retries: 180 })
+        : await client.waitForFinalization({ hash: txId, interval: 5000, retries: 180 });
       if (!receipt || typeof state.sdk.isSuccessful !== 'function' || !state.sdk.isSuccessful(receipt)) {
-        throw new Error('Transaction finalized with an execution error.');
+        throw new Error('Validators finished with an execution error.');
       }
-      setClaimStatus(form, 'finalized');
+      setClaimStatus(form, 'provisional');
     }
     var txIdElement = $('[data-tx-id]', form);
     if (txIdElement) txIdElement.textContent = txLabel;
-    var decodedResult = extractVerdictFromTransaction(receipt && receipt.transactionData);
+    var decodedResult = extractVerdictFromTransaction(receipt && receipt.transactionData)
+      || await readLatestVerdict(client, wallet.account, claimText, evidenceUrl);
     saveLiveClaim({
       claim_text: claimText,
       evidence_url: evidenceUrl,
@@ -869,7 +896,9 @@
       detailLink.hidden = false;
       detailLink.setAttribute('href', '/records/pc-25-047/?live=1&tx=' + encodeURIComponent(txLabel));
     }
-    setFormMessage(form, '✓ Onchain complete. The verification result is ready.');
+    setFormMessage(form, state.client && state.client.chain && state.client.chain.isStudio
+      ? '✓ Onchain complete. The verification result is ready.'
+      : '✓ Validators accepted the result. It becomes final after the appeal window.');
     return receipt || txId;
   }
 
